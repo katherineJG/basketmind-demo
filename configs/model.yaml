@@ -1,4 +1,10 @@
-# Initial architecture (blueprint section 5).
+# Architecture (blueprint section 5). Dimensions not given by the blueprint are marked (assumed).
+item_embedding_dim: 128   # shared product embedding table: feeds the temporal and the graph encoder
+basket_feature_dim: 8     # (assumed) log total qty, log time gap, month sin/cos, weekday sin/cos, log size, log value
+branches:                 # ablation switches; at least one must be true
+  temporal: true
+  graph: true
+  customer: true
 temporal_encoder:
   embedding_dim: 128
   num_heads: 4
@@ -14,10 +20,16 @@ graph_encoder:
   aggregation: mean
   dropout: 0.2
 customer_encoder:
+  id_dim: 32              # (assumed) customer id embedding; index 0 = unseen customer
+  country_dim: 8          # (assumed)
+  numeric_dim: 6          # frequency, avg basket size, avg quantity, avg spend, recency, avg interval
   hidden_dims: [128, 64]
+  dropout: 0.2
 fusion:
-  type: concat_mlp   # gated fusion is a later experiment
+  type: concat_mlp        # gated fusion is a later experiment
   output_dim: 128
+  dropout: 0.2
 heads:
-  reversal_enabled: false   # enable only after reversal labels are validated
+  quantity_hidden: 64     # (assumed)
+  reversal_enabled: false # enable only after reversal labels are validated
 loss_weights: {basket: 1.0, quantity: 1.0, reversal: 0.0}
