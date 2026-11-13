@@ -4,7 +4,8 @@ Hybrid deep learning system for next-basket prediction on the UCI Online Retail 
 a temporal Transformer, a GraphSAGE product encoder and a customer-context encoder, fused and
 trained with multi-task heads. The engineering blueprint is in `BASKETMIND master.md`.
 
-> Status: **M0 (foundation) only.** No data processing or models yet, and no results exist.
+> Status: **M0 (foundation) and M1 (data engineering) done.** No models yet, so no model results exist.
+> Data facts and rules: `docs/data_quality_report.md` and `docs/data_dictionary.md`.
 
 ## Requirements
 
@@ -28,6 +29,13 @@ Install the ROCm wheels first and never let pip replace them with a CPU or CUDA 
 
 UCI Online Retail II (CC BY 4.0): https://archive.ics.uci.edu/dataset/502/online+retail+ii
 Place the file at `data/raw/online_retail_II.xlsx`. Raw data is never modified or committed.
+
+```powershell
+%USERPROFILE%\bm-venv\Scripts\python.exe scripts\run_m1.py   # --refresh re-reads the xlsx (~45 s)
+```
+
+This writes `data/processed/*` and `docs/data_quality_report.md`, and fails if any next-basket example
+contains future information.
 
 ## Layout
 

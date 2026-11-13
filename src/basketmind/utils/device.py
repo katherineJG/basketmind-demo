@@ -22,7 +22,5 @@ def describe_device() -> dict[str, object]:
         "hip": torch.version.hip,  # None on non-ROCm builds
         "gpu_available": on_gpu,
         "gpu_name": torch.cuda.get_device_name(0) if on_gpu else None,
-        "vram_gb": round(torch.cuda.get_device_properties(0).total_memory / 2**30, 1)
-        if on_gpu
-        else None,
+        "vram_gb": round(torch.cuda.get_device_properties(0).total_memory / 2**30, 1) if on_gpu else None,
     }

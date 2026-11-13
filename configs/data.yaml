@@ -1,7 +1,23 @@
-# Data ingestion and chronological splitting (blueprint sections 4.1, 4.2).
-# Split boundaries are PROVISIONAL: inspect actual coverage in M1 before finalising.
+# Data ingestion, cleaning and chronological splitting (blueprint 4.1, 4.2).
 raw_path: data/raw/online_retail_II.xlsx
+raw_cache_path: data/interim/raw_combined.parquet  # parquet copy of the raw sheets; raw file is never modified
+processed_dir: data/processed
+# The UCI file uses different column names from the blueprint; mapped to the blueprint's canonical names.
+column_map:
+  Invoice: InvoiceNo
+  StockCode: StockCode
+  Description: Description
+  Quantity: Quantity
+  InvoiceDate: InvoiceDate
+  Price: UnitPrice
+  Customer ID: CustomerID
+  Country: Country
 required_columns: [InvoiceNo, StockCode, Description, Quantity, InvoiceDate, UnitPrice, CustomerID, Country]
+cancellation_prefix: "C"
+# Product codes are 5 digits plus optional letters (after upper-casing). Everything else (POST, DOT, M,
+# BANK CHARGES, gift_*, DCGS*, ...) is a non-product line and is labelled, not deleted.
+product_code_regex: '^\d{5}[A-Z]*$'
+# Boundaries are PROVISIONAL (blueprint): the data actually ends 2011-12-09, so the test window is short.
 splits:
   train: {start: "2009-12-01", end: "2010-12-31"}
   validation: {start: "2011-01-01", end: "2011-06-30"}
