@@ -155,7 +155,11 @@ class GRURecommender(Recommender):
         seed_everything(seed)
         c, t = self.cfg, self.tc
         self.net = _GRUNet(task.n_items, c["item_dim"], c["hidden_dim"], c["dropout"]).to(device)
-        opt = torch.optim.AdamW(self.net.parameters(), lr=t["learning_rate"], weight_decay=t["weight_decay"])
+        opt = torch.optim.AdamW(
+            self.net.parameters(),
+            lr=c.get("learning_rate", t["learning_rate"]),  # GRU-specific values override the shared ones
+            weight_decay=c.get("weight_decay", t["weight_decay"]),
+        )
         sched = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, mode="max", patience=2)
         loss_fn = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(c["pos_weight"], device=device))
         train = task.examples["train"]

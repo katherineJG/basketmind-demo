@@ -15,9 +15,11 @@ matrix_factorisation:
   lr: 0.01
   weight_decay: 0.00001
   pos_weight: 10.0
-gru:
+gru:  # tuned on validation Recall@10 only (Optuna trial 24, see docs/gru_tuning.md); test was never used
   item_dim: 64
-  hidden_dim: 128
-  dropout: 0.2
-  pos_weight: 10.0
+  hidden_dim: 256
+  dropout: 0.4792
+  pos_weight: 74.7
+  learning_rate: 0.002724
+  weight_decay: 0.0000033
   eval_batch_size: 512

@@ -8,6 +8,12 @@ import pytest
 from basketmind.utils.config import load_config, project_root
 
 
+@pytest.fixture(autouse=True)
+def _mlflow_in_tmp(tmp_path, monkeypatch):
+    """Keep MLflow's store out of the project root during tests."""
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", f"sqlite:///{(tmp_path / 'mlflow.db').as_posix()}")
+
+
 @pytest.fixture
 def data_cfg():
     return load_config("data")
