@@ -1,14 +1,32 @@
 """Tiny SYNTHETIC fixtures for tests only. Never used for reported results."""
 
+import shutil
+
 import pandas as pd
 import pytest
 
-from basketmind.utils.config import load_config
+from basketmind.utils.config import load_config, project_root
 
 
 @pytest.fixture
 def data_cfg():
     return load_config("data")
+
+
+@pytest.fixture
+def synthetic_root(tmp_path):
+    """Temp project root with configs and a tiny SYNTHETIC two-sheet xlsx (UCI layout), not yet processed."""
+    shutil.copytree(project_root() / "configs", tmp_path / "configs")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "data/raw").mkdir(parents=True)
+    raw = make_raw().rename(
+        columns={"InvoiceNo": "Invoice", "UnitPrice": "Price", "CustomerID": "Customer ID"}
+    )
+    raw["Customer ID"] = pd.to_numeric(raw["Customer ID"], errors="coerce")
+    with pd.ExcelWriter(tmp_path / "data/raw/online_retail_II.xlsx") as xw:
+        for name, g in raw.groupby("source_sheet"):
+            g.drop(columns="source_sheet").to_excel(xw, sheet_name=name, index=False)
+    return tmp_path
 
 
 def make_raw() -> pd.DataFrame:

@@ -1,0 +1,23 @@
+# Baseline recommenders (blueprint section 8). Hyperparameters here are fixed, not tuned on test.
+candidate_policies: [full, exclude_history]  # full = repeats allowed; exclude_history = new items only
+primary_policy: full
+selection_metric: recall@10                   # validation metric used for early stopping / epoch choice
+output_dir: experiments/baselines
+report_path: docs/baseline_report.md
+mlflow:
+  tracking_uri: sqlite:///experiments/mlflow.db
+  experiment: baselines
+matrix_factorisation:
+  dim: 64
+  epochs: 300
+  eval_every: 10
+  patience: 5            # in eval rounds
+  lr: 0.01
+  weight_decay: 0.00001
+  pos_weight: 10.0
+gru:
+  item_dim: 64
+  hidden_dim: 128
+  dropout: 0.2
+  pos_weight: 10.0
+  eval_batch_size: 512
