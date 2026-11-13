@@ -39,6 +39,11 @@ def test_ppmi_hand_computed():
     assert (ppmi >= 0).all()
 
 
+def test_snapshot_before_the_first_basket_is_an_empty_graph():
+    g = build_product_graph(make_baskets(), pd.Timestamp("2009-01-01"), ITEMS, CFG)
+    assert g.n_baskets == 0 and g.edge_index.shape == (2, 0) and g.edge_weight.numel() == 0 and g.n_nodes == 4
+
+
 def test_min_cooccurrence_filters_rare_pairs():
     cooc = sp.csr_matrix(np.array([[2, 1], [1, 2]], dtype=float))
     assert calculate_ppmi(cooc, np.array([2.0, 2.0]), 2.0, min_cooccurrence=2).nnz == 0

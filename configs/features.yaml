@@ -8,3 +8,8 @@ customer_features:
   - purchase_recency
   - average_purchase_interval
 basket_features: [quantity, time_gap, calendar, basket_size, transaction_value]
+# Reference time for purchase_recency. "target_time" = the target basket's timestamp, i.e. predictions are made
+# when the customer arrives to shop (assumption: it uses the time of the event being predicted).
+# "none" sets recency to 0 for a strictly time-blind variant.
+recency_reference: target_time
+snapshot_frequency_months: 1   # a graph snapshot per month; examples use the snapshot at the start of their month

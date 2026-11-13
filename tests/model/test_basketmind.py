@@ -73,6 +73,14 @@ def test_invalid_configs_rejected():
         BasketMindModel(cfg, N_ITEMS, N_CUSTOMERS, N_COUNTRIES)
 
 
+def test_empty_graph_snapshot_runs_forward_and_backward():
+    model = build()
+    empty = make_graph(n_edges=0, device=DEV)  # early snapshots have no edges at all
+    out = model(make_batch(device=DEV), empty)
+    assert empty.edge_index.shape[1] == 0 and torch.isfinite(out["basket_logits"]).all()
+    out["basket_logits"].mean().backward()  # the graph encoder keeps only its self terms; no crash
+
+
 def test_graph_snapshot_changes_item_scores():
     model = build().eval()
     batch = make_batch(device=DEV)

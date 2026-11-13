@@ -9,9 +9,30 @@ from basketmind.utils.config import load_config, project_root
 
 
 @pytest.fixture(autouse=True)
+def _release_gpu_after_test():
+    """Avoid the ROCm-on-Windows exit deadlock after tests that leave GPU tensors alive (see release_gpu)."""
+    yield
+    from basketmind.utils.device import release_gpu
+
+    release_gpu()
+
+
+@pytest.fixture(autouse=True)
 def _mlflow_in_tmp(tmp_path, monkeypatch):
     """Keep MLflow's store out of the project root during tests."""
     monkeypatch.setenv("MLFLOW_TRACKING_URI", f"sqlite:///{(tmp_path / 'mlflow.db').as_posix()}")
+
+
+@pytest.fixture
+def training_data(synthetic_root):
+    """SYNTHETIC training data (features, snapshots, windows) built through the real pipeline code."""
+    from basketmind.data.pipeline import run_m1
+    from basketmind.training.data import build_training_data
+
+    run_m1(root=synthetic_root)
+    return build_training_data(
+        synthetic_root / "data/processed", load_config("features"), load_config("graph"), quantity_samples=4
+    )
 
 
 @pytest.fixture

@@ -44,6 +44,10 @@ def calculate_ppmi(
     without deleting them; otherwise on `cooc` itself.
     """
     c = sp.coo_matrix(cooc)
+    if (
+        c.nnz == 0
+    ):  # e.g. a snapshot taken before the first basket: no edges (also avoids empty sparse indexing)
+        return sp.coo_matrix(c.shape)
     seen = c.data if support is None else np.asarray(sp.csr_matrix(support)[c.row, c.col]).ravel()
     keep = (c.row != c.col) & (seen >= max(min_cooccurrence, np.finfo(float).tiny))
     row, col, val = c.row[keep], c.col[keep], c.data[keep]

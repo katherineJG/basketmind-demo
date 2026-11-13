@@ -1,6 +1,20 @@
 """Device detection: AMD GPU via ROCm when available, otherwise CPU."""
 
+import gc
+
 import torch
+
+
+def release_gpu() -> None:
+    """Free GPU memory deterministically: collect garbage, wait for queued work, empty the cache.
+
+    On ROCm for Windows a process that still holds GPU tensors at interpreter shutdown can deadlock
+    while exiting (observed: one idle thread, 0% CPU, forever). Call this before a script or test ends.
+    """
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
 
 
 def get_device(preference: str = "auto") -> torch.device:
