@@ -1,0 +1,4 @@
+# Product co-occurrence graph (blueprint 5.2). Snapshots are timestamp-aware: no future transactions.
+edge_weight: ppmi
+temporal_decay: {enabled: false, half_life_days: 90}
+min_cooccurrence: 2

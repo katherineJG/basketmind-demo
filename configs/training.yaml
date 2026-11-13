@@ -1,0 +1,12 @@
+# Blueprint section 7 defaults.
+optimizer: adamw
+learning_rate: 0.0003
+weight_decay: 0.0001
+batch_size: 128
+max_epochs: 50
+early_stopping_patience: 7
+gradient_clip: 1.0
+scheduler: reduce_on_plateau
+seeds: [42, 43, 44]
+precision: fp32   # enable mixed precision only after a successful GPU compatibility test
+device: auto      # auto = AMD GPU via ROCm if available, else CPU

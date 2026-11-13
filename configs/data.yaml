@@ -1,0 +1,9 @@
+# Data ingestion and chronological splitting (blueprint sections 4.1, 4.2).
+# Split boundaries are PROVISIONAL: inspect actual coverage in M1 before finalising.
+raw_path: data/raw/online_retail_II.xlsx
+required_columns: [InvoiceNo, StockCode, Description, Quantity, InvoiceDate, UnitPrice, CustomerID, Country]
+splits:
+  train: {start: "2009-12-01", end: "2010-12-31"}
+  validation: {start: "2011-01-01", end: "2011-06-30"}
+  test: {start: "2011-07-01", end: "2011-12-31"}
+seed: 42

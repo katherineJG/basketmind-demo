@@ -1,0 +1,5 @@
+recommendation_k: [5, 10, 20]
+metrics: [recall, precision@10, ndcg@10, mrr]
+quantity_metrics: [mae, rmse, wape]
+reversal_metrics: [pr_auc, precision, recall, f1]
+slices: [cold_start, short_history, frequent_customers, popularity_bias, country, temporal]

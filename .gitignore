@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.env
+.claude/worktrees/
+
+# data and artifacts never go to Git (raw dataset is CC BY 4.0 but kept local)
+data/raw/*
+data/interim/*
+data/processed/*
+data/sequences/*
+data/graphs/*
+artifacts/checkpoints/*
+artifacts/mappings/*
+artifacts/model_metadata/*
+experiments/*
+mlruns/
+mlartifacts/
+*.ckpt
+*.pt
+*.parquet
+!**/.gitkeep

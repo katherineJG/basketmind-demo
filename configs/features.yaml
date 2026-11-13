@@ -1,0 +1,10 @@
+# Customer and basket features (blueprint 5.1, 5.3). Normalisers are fit on the training split only.
+max_sequence_length: 50
+customer_features:
+  - purchase_frequency
+  - average_basket_size
+  - average_quantity
+  - average_spending
+  - purchase_recency
+  - average_purchase_interval
+basket_features: [quantity, time_gap, calendar, basket_size, transaction_value]

@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "basketmind"
+version = "0.1.0"
+description = "Hybrid deep learning next-basket prediction (Transformer + GraphSAGE + customer context)"
+requires-python = ">=3.12,<3.13"
+# torch / torchvision are NOT listed: install AMD's ROCm wheels first with scripts/install_rocm_torch.ps1.
+# Listing them here would let pip replace the ROCm build with a CPU/CUDA one.
+dependencies = [
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "openpyxl",
+    "scikit-learn",
+    "pyyaml",
+    "torch_geometric",  # pure-Python core only; no compiled torch-scatter/sparse needed for SAGEConv
+    "mlflow",
+    "optuna",
+    "fastapi",
+    "uvicorn",
+    "pydantic>=2",
+    "httpx",
+    "streamlit",
+    "plotly",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov", "ruff"]
+
+[tool.setuptools.packages.find]
+where = ["src", "api"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "api", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

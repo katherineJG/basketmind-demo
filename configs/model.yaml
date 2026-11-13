@@ -1,0 +1,23 @@
+# Initial architecture (blueprint section 5).
+temporal_encoder:
+  embedding_dim: 128
+  num_heads: 4
+  num_layers: 2
+  feedforward_dim: 256
+  max_sequence_length: 50
+  dropout: 0.2
+  causal: true
+graph_encoder:
+  input_dim: 128
+  hidden_dim: 128
+  num_layers: 2
+  aggregation: mean
+  dropout: 0.2
+customer_encoder:
+  hidden_dims: [128, 64]
+fusion:
+  type: concat_mlp   # gated fusion is a later experiment
+  output_dim: 128
+heads:
+  reversal_enabled: false   # enable only after reversal labels are validated
+loss_weights: {basket: 1.0, quantity: 1.0, reversal: 0.0}
