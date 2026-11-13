@@ -1,6 +1,8 @@
-"""Hyperparameter search for the GRU baseline with Optuna. Uses VALIDATION only; test is never evaluated."""
+"""Hyperparameter search for the trainable baselines with Optuna. VALIDATION only; test is never evaluated."""
 
 import json
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -8,7 +10,7 @@ import mlflow
 import optuna
 import torch
 
-from basketmind.baselines.models import GRURecommender
+from basketmind.baselines.models import GRURecommender, MatrixFactorisation, Recommender
 from basketmind.baselines.run import evaluate_model
 from basketmind.baselines.task import Task, load_task
 from basketmind.utils.config import load_config, project_root
@@ -18,7 +20,7 @@ from basketmind.utils.logging import get_logger
 log = get_logger("baselines.tune")
 
 
-def suggest(trial: optuna.Trial) -> dict[str, Any]:
+def suggest_gru(trial: optuna.Trial) -> dict[str, Any]:
     return {
         "item_dim": trial.suggest_categorical("item_dim", [32, 64, 128]),
         "hidden_dim": trial.suggest_categorical("hidden_dim", [64, 128, 256]),
@@ -29,7 +31,33 @@ def suggest(trial: optuna.Trial) -> dict[str, Any]:
     }
 
 
-def tune_gru(
+def suggest_mf(trial: optuna.Trial) -> dict[str, Any]:
+    return {
+        "dim": trial.suggest_categorical("dim", [16, 32, 64, 128, 256]),
+        "lr": trial.suggest_float("lr", 3e-3, 1e-1, log=True),
+        "weight_decay": trial.suggest_float("weight_decay", 1e-6, 1e-1, log=True),
+        "pos_weight": trial.suggest_float("pos_weight", 1.0, 300.0, log=True),
+    }
+
+
+@dataclass(frozen=True)
+class Space:
+    suggest: Callable[[optuna.Trial], dict[str, Any]]
+    build: Callable[[dict[str, Any], dict[str, Any]], Recommender]  # (suggested cfg, training cfg) -> model
+
+
+SPACES = {
+    "gru": Space(suggest_gru, lambda c, tc: GRURecommender(c | {"eval_batch_size": 512}, tc)),
+    # MF's best epoch hit the 300-epoch cap in the untuned run, so the search allows up to 1000 epochs.
+    "matrix_factorisation": Space(
+        suggest_mf,
+        lambda c, tc: MatrixFactorisation(c | {"epochs": 1000, "eval_every": 10, "patience": 5}),
+    ),
+}
+
+
+def tune_model(
+    name: str,
     task: Task,
     train_cfg: dict[str, Any],
     ks: list[int],
@@ -39,37 +67,41 @@ def tune_gru(
     seed: int = 42,
     selection_metric: str = "recall@10",
 ) -> optuna.Study:
-    """Maximise validation `selection_metric` of the GRU over `n_trials` (resumable via `storage`)."""
-    study = optuna.create_study(study_name="gru", direction="maximize", storage=storage, load_if_exists=True)
+    """Maximise validation `selection_metric` of baseline `name` over `n_trials` (resumable via `storage`)."""
+    space = SPACES[name]
+    study = optuna.create_study(study_name=name, direction="maximize", storage=storage, load_if_exists=True)
     # Seed by trials already done: a fixed seed would replay the same random draws after a resume.
     done = len([t for t in study.trials if t.state.is_finished()])
     study.sampler = optuna.samplers.TPESampler(seed=seed + done)
 
     def objective(trial: optuna.Trial) -> float:
-        cfg = suggest(trial)
-        model = GRURecommender(cfg | {"eval_batch_size": 512}, train_cfg)
+        cfg = space.suggest(trial)
+        model = space.build(cfg, train_cfg)
 
-        def val_metric(m: GRURecommender) -> float:
+        def val_metric(m: Recommender) -> float:
             return evaluate_model(m, task, "validation", "full", ks, device)[selection_metric]
 
-        with mlflow.start_run(run_name=f"gru-tune-{trial.number}", nested=True):
+        with mlflow.start_run(run_name=f"{name}-tune-{trial.number}", nested=True):
             mlflow.log_params(cfg)
             info = model.fit(task, device, seed, val_metric)
             mlflow.log_metric("val_" + selection_metric.replace("@", "_at_"), info["best_val"])
         trial.set_user_attr("best_epoch", info["best_epoch"])
-        log.info("trial %d val %s=%.4f %s", trial.number, selection_metric, info["best_val"], cfg)
+        log.info("%s trial %d val %s=%.4f %s", name, trial.number, selection_metric, info["best_val"], cfg)
         return info["best_val"]
 
-    remaining = n_trials - len([t for t in study.trials if t.state.is_finished()])
-    if remaining > 0:
+    if (remaining := n_trials - done) > 0:
         study.optimize(objective, n_trials=remaining)
     return study
 
 
-def render_tuning_report(study: optuna.Study, baseline_val: float | None) -> str:
+def render_tuning_report(
+    name: str, study: optuna.Study, baseline_val: float | None, selection_metric: str = "recall@10"
+) -> str:
     df = study.trials_dataframe().sort_values("value", ascending=False)
     cols = [c for c in df.columns if c.startswith("params_")]
-    rows = ["| rank | trial | val recall@10 | best epoch | " + " | ".join(c[7:] for c in cols) + " |"]
+    rows = [
+        f"| rank | trial | val {selection_metric} | best epoch | " + " | ".join(c[7:] for c in cols) + " |"
+    ]
     rows.append("|---|---|---:|---:|" + "---:|" * len(cols))
     for i, (_, r) in enumerate(df.head(10).iterrows(), 1):
         vals = " | ".join(f"{r[c]:.4g}" if isinstance(r[c], float) else str(r[c]) for c in cols)
@@ -77,11 +109,11 @@ def render_tuning_report(study: optuna.Study, baseline_val: float | None) -> str
             f"| {i} | {int(r['number'])} | {r['value']:.4f} | {int(r['user_attrs_best_epoch'])} | {vals} |"
         )
     base = f"{baseline_val:.4f}" if baseline_val is not None else "n/a"
-    return f"""# GRU tuning (validation only)
+    return f"""# {name} tuning (validation only)
 
-Generated by `scripts/tune_gru.py`. Optuna TPE search, {len(df)} trials, seed 42, objective = validation
-Recall@10 (policy `full`). The test split was not evaluated during the search.
-Untuned GRU validation Recall@10 (seed 42, previous settings): {base}.
+Generated by `scripts/tune.py`. Optuna TPE search, {len(df)} trials, seed 42, objective = validation
+{selection_metric} (policy `full`). The test split was not evaluated during the search.
+Previous (untuned) validation {selection_metric}, seed 42: {base}.
 
 Top 10 trials:
 
@@ -89,7 +121,7 @@ Top 10 trials:
 """
 
 
-def run_tuning(n_trials: int = 30, root: Path | None = None) -> optuna.Study:
+def run_tuning(name: str, n_trials: int = 30, root: Path | None = None) -> optuna.Study:
     root = root or project_root()
     train_cfg = load_config("training", root / "configs")
     ks = load_config("evaluation", root / "configs")["recommendation_k"]
@@ -99,18 +131,19 @@ def run_tuning(n_trials: int = 30, root: Path | None = None) -> optuna.Study:
     task = load_task(root / load_config("data", root / "configs")["processed_dir"])
 
     mlflow.set_tracking_uri(f"sqlite:///{(root / 'experiments' / 'mlflow.db').as_posix()}")
-    mlflow.set_experiment("gru_tuning")
-    with mlflow.start_run(run_name="gru-optuna"):
-        study = tune_gru(
-            task, train_cfg, ks, device, n_trials, storage=f"sqlite:///{(out / 'optuna.db').as_posix()}"
-        )
+    mlflow.set_experiment(f"{name}_tuning")
+    storage = f"sqlite:///{(out / 'optuna.db').as_posix()}"
+    with mlflow.start_run(run_name=f"{name}-optuna"):
+        study = tune_model(name, task, train_cfg, ks, device, n_trials, storage=storage)
         mlflow.log_metric("best_val", study.best_value)
         mlflow.log_params({f"best.{k}": v for k, v in study.best_params.items()})
 
     baseline = None
     details = out / "run_details.json"
     if details.exists():
-        baseline = json.loads(details.read_text()).get("gru-42", {}).get("best_val")
-    study.trials_dataframe().to_csv(out / "gru_tuning_trials.csv", index=False)
-    (root / "docs" / "gru_tuning.md").write_text(render_tuning_report(study, baseline), encoding="utf-8")
+        baseline = json.loads(details.read_text()).get(f"{name}-42", {}).get("best_val")
+    study.trials_dataframe().to_csv(out / f"{name}_tuning_trials.csv", index=False)
+    (root / "docs" / f"{name}_tuning.md").write_text(
+        render_tuning_report(name, study, baseline), encoding="utf-8"
+    )
     return study

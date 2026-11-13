@@ -7,14 +7,14 @@ report_path: docs/baseline_report.md
 mlflow:
   tracking_uri: sqlite:///experiments/mlflow.db
   experiment: baselines
-matrix_factorisation:
-  dim: 64
-  epochs: 300
+matrix_factorisation:  # tuned on validation Recall@10 only (Optuna trial 29, see docs/matrix_factorisation_tuning.md)
+  dim: 256
+  epochs: 1000
   eval_every: 10
   patience: 5            # in eval rounds
-  lr: 0.01
-  weight_decay: 0.00001
-  pos_weight: 10.0
+  lr: 0.003345
+  weight_decay: 0.0001342
+  pos_weight: 2.978
 gru:  # tuned on validation Recall@10 only (Optuna trial 24, see docs/gru_tuning.md); test was never used
   item_dim: 64
   hidden_dim: 256
