@@ -3,6 +3,7 @@
 import copy
 import json
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -96,11 +97,13 @@ def run_experiment(
     ks: list[int] | None = None,
     evaluate_test: bool = True,
     log_mlflow: bool = True,
+    on_epoch: Callable[[int, float], None] | None = None,
 ) -> dict[str, Any]:
     """Train with early stopping on validation `selection_metric`; keep the best checkpoint; test once.
 
     The test split is touched exactly once, after training, with the best-validation checkpoint. Nothing
-    (stopping, scheduler, checkpoint choice, tuning) ever sees it.
+    (stopping, scheduler, checkpoint choice, tuning) ever sees it. `on_epoch(epoch, validation_score)` is
+    called after every epoch; it may raise to abort the run (used by tuning to prune poor trials).
     """
     ks = ks or load_config("evaluation")["recommendation_k"]
     sel_key = "full." + train_cfg["selection_metric"]
@@ -139,6 +142,8 @@ def run_experiment(
             if sel_key not in val:
                 raise KeyError(f"selection metric {sel_key!r} was not computed; available: {sorted(val)}")
             score = val[sel_key]
+            if on_epoch is not None:
+                on_epoch(epoch, score)
             scheduler.step(score)
             history.append(
                 {"epoch": epoch, "train": train_losses, "val": val, "lr": optimizer.param_groups[0]["lr"]}
