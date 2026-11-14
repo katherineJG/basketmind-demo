@@ -35,8 +35,10 @@ class BasketMindModel(nn.Module):
     reversal (B, K): reversal logit for those pairs (Head C), only if the head is enabled.
 
     `branches` in the config switch the temporal, graph and customer encoders on or off for ablations.
-    Item scores are fused . item_vector + bias; the item vector is the graph encoder's output when the graph
-    branch is on, otherwise the raw shared item embedding.
+    Item scores are fused . item_vector + bias. By default the item vector is the graph encoder's output when
+    the graph branch is on, otherwise the raw shared item embedding (input and output tables are tied).
+    With `untie_output: true` scoring uses a separate output embedding table instead, plus the graph
+    encoder's vectors when the graph branch is on; the input side is unchanged.
     """
 
     def __init__(self, cfg: dict[str, Any], n_items: int, n_customers: int, n_countries: int):
@@ -60,6 +62,8 @@ class BasketMindModel(nn.Module):
                 "item embedding, graph and fusion dimensions must all match (item scores are dot products)"
             )
         self.item_emb = nn.Embedding(n_items, d)
+        self.untie_output = bool(cfg.get("untie_output", False))  # absent in older checkpoints -> tied
+        self.output_emb = nn.Embedding(n_items, d) if self.untie_output else None
         self.item_bias = nn.Parameter(torch.zeros(n_items))
         in_dim = 0
         if self.branches["temporal"]:
@@ -100,6 +104,10 @@ class BasketMindModel(nn.Module):
             parts.append(padded.sum(1) / counts[:, None])  # mean over real baskets (padding rows are zero)
         if self.branches["customer"]:
             parts.append(self.customer(batch.customer_idx, batch.country_idx, batch.customer_feats))
+
+        if self.untie_output:
+            graph_part = item_vectors if self.branches["graph"] else 0.0
+            item_vectors = self.output_emb.weight + graph_part  # scoring vectors; inputs used the tied table
 
         fused = self.fusion(parts)
         out = {"fused": fused, "basket_logits": fused @ item_vectors.T + self.item_bias}

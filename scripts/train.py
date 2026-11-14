@@ -30,6 +30,7 @@ def main() -> None:
     ap.add_argument("--lr", type=float)
     ap.add_argument("--no-test", action="store_true")
     ap.add_argument("--tuned", action="store_true", help="apply the best settings of the Optuna search")
+    ap.add_argument("--untie-output", action="store_true", help="separate output item embeddings")
     args = ap.parse_args()
 
     root = project_root()
@@ -41,6 +42,8 @@ def main() -> None:
         print("tuned settings:", {k: round(v, 5) for k, v in best.items()}, flush=True)
     enabled = set(args.branches.split(","))
     model_cfg["branches"] = {b: b in enabled for b in BRANCHES}
+    if args.untie_output:
+        model_cfg["untie_output"] = True
     if args.max_epochs:
         train_cfg["max_epochs"] = args.max_epochs
     if args.pos_weight:

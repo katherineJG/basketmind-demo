@@ -13,6 +13,7 @@ N_ITEMS, N_CUSTOMERS, N_COUNTRIES = 40, 10, 4
 def model_cfg(**overrides) -> dict:
     cfg = load_config("model")
     cfg["heads"]["reversal_enabled"] = overrides.pop("reversal", False)
+    cfg["untie_output"] = overrides.pop("untie", False)
     for name, on in overrides.pop("branches", {}).items():
         cfg["branches"][name] = on
     return cfg

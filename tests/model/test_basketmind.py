@@ -73,6 +73,68 @@ def test_invalid_configs_rejected():
         BasketMindModel(cfg, N_ITEMS, N_CUSTOMERS, N_COUNTRIES)
 
 
+def test_tied_is_the_default_and_owns_no_output_table():
+    assert build().output_emb is None and not build().untie_output
+    old = model_cfg()
+    del old["untie_output"]  # a config saved before the option existed
+    assert BasketMindModel(old, N_ITEMS, N_CUSTOMERS, N_COUNTRIES).untie_output is False
+
+
+@pytest.mark.parametrize("on", [("temporal", "graph", "customer"), ("graph", "customer"), ("temporal",)])
+def test_untied_output_trains_every_parameter_including_the_output_table(on):
+    model = build(untie=True, reversal=True, branches={k: k in on for k in ("temporal", "graph", "customer")})
+    assert model.output_emb is not None and model.output_emb.weight.shape == (N_ITEMS, 128)
+    out = run(model)
+    assert out["basket_logits"].shape == (3, N_ITEMS) and torch.isfinite(out["basket_logits"]).all()
+    (out["basket_logits"].mean() + out["quantity"].mean() + out["reversal"].mean()).backward()
+    missing = [n for n, p in model.named_parameters() if p.grad is None or not torch.isfinite(p.grad).all()]
+    assert not missing, missing
+    assert model.output_emb.weight.grad.abs().sum() > 0
+
+
+def test_untied_scores_use_the_output_table_not_the_input_table():
+    model = build(untie=True, branches={"graph": False}).eval()  # no graph: scores come only from output_emb
+    batch = make_batch(device=DEV)
+    with torch.no_grad():
+        out = model(batch, None)
+        by_formula = out["fused"] @ model.output_emb.weight.T + model.item_bias
+        assert torch.allclose(out["basket_logits"], by_formula, atol=1e-4)  # item side = output table only
+        model.output_emb.weight.zero_()
+        zeroed = model(batch, None)
+        # with an all-zero output table every item gets the same score as its bias, whatever the customer
+        assert torch.allclose(zeroed["basket_logits"], model.item_bias.expand(3, -1), atol=1e-6)
+
+
+def test_untied_with_graph_adds_the_graph_vectors_to_the_output_table():
+    model = build(untie=True, branches={"temporal": False, "customer": False}).eval()
+    batch, graph = make_batch(device=DEV), make_graph(device=DEV)
+    with torch.no_grad():
+        out = model(batch, graph)
+        expected_vectors = model.output_emb.weight + model.graph_encoder(model.item_emb.weight, graph)
+        assert torch.allclose(
+            out["basket_logits"], out["fused"] @ expected_vectors.T + model.item_bias, atol=1e-4
+        )
+        model.output_emb.weight.zero_()  # now only the graph vectors remain on the item side
+        graph_only = model(batch, graph)
+        graph_vectors = model.graph_encoder(model.item_emb.weight, graph)
+        assert torch.allclose(
+            graph_only["basket_logits"], graph_only["fused"] @ graph_vectors.T + model.item_bias, atol=1e-4
+        )
+
+
+def test_untied_checkpoint_roundtrip(tmp_path):
+    model = build(untie=True).eval()
+    batch, graph = make_batch(device=DEV), make_graph(device=DEV)
+    with torch.no_grad():
+        before = model(batch, graph)["basket_logits"]
+    path = save_checkpoint(tmp_path / "u.pt", model)
+    loaded, _ = load_checkpoint(path, DEV)
+    loaded.eval()
+    with torch.no_grad():
+        after = loaded(batch, graph)["basket_logits"]
+    assert loaded.untie_output and torch.allclose(before, after, atol=1e-5)
+
+
 def test_empty_graph_snapshot_runs_forward_and_backward():
     model = build()
     empty = make_graph(n_edges=0, device=DEV)  # early snapshots have no edges at all

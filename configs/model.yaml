@@ -1,6 +1,7 @@
 # Architecture (blueprint section 5). Dimensions not given by the blueprint are marked (assumed).
 item_embedding_dim: 128   # shared product embedding table: feeds the temporal and the graph encoder
 basket_feature_dim: 8     # (assumed) log total qty, log time gap, month sin/cos, weekday sin/cos, log size, log value
+untie_output: false       # true: score items with a separate output table (+ graph vectors) instead of the shared one
 branches:                 # ablation switches; at least one must be true
   temporal: true
   graph: true
