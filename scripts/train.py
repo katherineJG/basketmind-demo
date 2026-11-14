@@ -9,9 +9,11 @@ import copy
 import time
 
 import mlflow
+import optuna
 
 from basketmind.training.data import build_training_data
 from basketmind.training.engine import run_experiment
+from basketmind.training.tune import apply_params
 from basketmind.utils.config import load_config, project_root
 from basketmind.utils.device import get_device, release_gpu
 
@@ -27,10 +29,16 @@ def main() -> None:
     ap.add_argument("--pos-weight", type=float)
     ap.add_argument("--lr", type=float)
     ap.add_argument("--no-test", action="store_true")
+    ap.add_argument("--tuned", action="store_true", help="apply the best settings of the Optuna search")
     args = ap.parse_args()
 
     root = project_root()
     model_cfg, train_cfg = load_config("model"), load_config("training")
+    if args.tuned:
+        storage = f"sqlite:///{(root / 'experiments' / 'neural' / 'tuning' / 'optuna.db').as_posix()}"
+        best = optuna.load_study(study_name="neural", storage=storage).best_params
+        model_cfg, train_cfg = apply_params(best, model_cfg, train_cfg)
+        print("tuned settings:", {k: round(v, 5) for k, v in best.items()}, flush=True)
     enabled = set(args.branches.split(","))
     model_cfg["branches"] = {b: b in enabled for b in BRANCHES}
     if args.max_epochs:
