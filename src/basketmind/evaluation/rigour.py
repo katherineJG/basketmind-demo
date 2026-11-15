@@ -58,12 +58,14 @@ def seed_std(rows: pd.DataFrame, policy: str, metric: str) -> pd.Series:
     return per_seed.groupby("model").std(ddof=0)
 
 
-def paired(avg: pd.DataFrame, slices: pd.DataFrame, policy: str, metric: str, n_boot: int) -> pd.DataFrame:
+def paired(
+    avg: pd.DataFrame, slices: pd.DataFrame, policy: str, metric: str, n_boot: int, pairs=PAIRS
+) -> pd.DataFrame:
     w = wide(avg, policy, metric)
     clusters = slices.loc[w.index, "customer"].to_numpy()
     rows = [
         {"a": a, "b": b, **paired_bootstrap(w[a].to_numpy(), w[b].to_numpy(), clusters, n_boot)}
-        for a, b in PAIRS
+        for a, b in pairs
         if a in w.columns and b in w.columns
     ]
     return pd.DataFrame(rows)

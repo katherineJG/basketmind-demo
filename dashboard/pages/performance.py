@@ -18,7 +18,9 @@ try:
 except ApiError as e:
     show_error(e, "the performance results")
     st.stop()
-st.caption(f"{perf['meta']['n_test_examples']:,} test baskets from {perf['meta']['n_test_customers']:,} customers.")
+st.caption(
+    f"{perf['meta']['n_test_examples']:,} test baskets from {perf['meta']['n_test_customers']:,} customers."
+)
 with st.expander("Model being served"):
     st.json(meta)
 
@@ -48,15 +50,28 @@ fig = go.Figure(
     )
 )
 st.plotly_chart(style_fig(fig, height=360), width="stretch")
+if "personal_frequency" in names:
+    st.caption(
+        "Personal frequency ranks a customer's own past products by how often and how recently they bought them. "
+        "It needs no learning, and it was added after the course report. Most of the next basket is repeat purchases, "
+        "which is why it is hard to beat. It cannot suggest anything the customer has not bought before, so in the "
+        "new-items view it falls back to popularity and scores exactly the same."
+    )
 with st.expander("Table view"):
     table = pd.DataFrame(
-        {"model": [m["name"] for m in rows], "mean": [v["mean"] for v in val],
-         "lower": [v["lo"] for v in val], "upper": [v["hi"] for v in val]}
+        {
+            "model": [m["name"] for m in rows],
+            "mean": [v["mean"] for v in val],
+            "lower": [v["lo"] for v in val],
+            "upper": [v["hi"] for v in val],
+        }
     ).iloc[::-1]
     st.dataframe(table, hide_index=True, width="stretch")
 
 st.subheader("Paired comparisons")
-st.caption("A negative difference means the first model scored lower. An interval that excludes zero is a reliable gap.")
+st.caption(
+    "A negative difference means the first model scored lower. An interval that excludes zero is a reliable gap."
+)
 paired = pd.DataFrame(perf["paired"])
 if not paired.empty:
     paired = paired[(paired["metric"] == metric) & (paired["new_items"] == new_items)]
@@ -74,7 +89,10 @@ for mid in ("item_item_cf", "abl_graph_customer", "gru"):
     part = cells[cells["model"] == mid].set_index("slice").reindex(order).reset_index()
     if part["mean"].notna().any():
         fig.add_bar(
-            x=part["slice"], y=part["mean"], name=names.get(mid, mid), marker_color=model_color(mid),
+            x=part["slice"],
+            y=part["mean"],
+            name=names.get(mid, mid),
+            marker_color=model_color(mid),
             error_y={"type": "data", "array": part["half"]},
         )
 fig.update_layout(barmode="group")

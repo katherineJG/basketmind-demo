@@ -1,6 +1,7 @@
 import json
 
 import numpy as np
+import pandas as pd
 import pytest
 from tests.unit.test_cancellation_labels import REGEX, scenario
 from tests.unit.test_rigour import synthetic
@@ -20,6 +21,33 @@ def test_cancellation_payload_is_json_ready_and_consistent_with_the_analysis():
     assert top["product_id"] == "11111" and top["description"] == "WIDGET" and top["cancellation_lines"] == 2
     assert top["share_of_lines"] == pytest.approx(2 / (2 + 2))  # 2 cancellations against 2 purchase lines
     assert all(0 <= m["cancellation_rate"] <= 1 for m in out["monthly"])
+
+
+def test_personal_frequency_is_named_and_compared_with_the_models_it_beat():
+    rows, slices = synthetic()
+    pf = rows[rows["model"] == "item_item_cf"].assign(model="personal_frequency")
+    for metric in ("recall@10", "ndcg@10", "mrr"):
+        pf[metric] = pf[metric] + 0.1  # a known gap over item-item CF
+    out = analytics.performance_payload(
+        pd.concat([rows, pf], ignore_index=True),
+        slices,
+        {},
+        np.arange(50, 0, -1).astype(float),
+        50,
+        n_boot=100,
+    )
+    by_id = {m["id"]: m for m in out["models"]}
+    assert by_id["personal_frequency"]["name"] == "Personal frequency"
+    assert by_id["personal_frequency"]["group"] == "other" and not by_id["personal_frequency"]["selected"]
+    gap = next(
+        p
+        for p in out["paired"]
+        if (p["a"], p["b"], p["metric"]) == ("item_item_cf", "personal_frequency", "recall@10")
+        and not p["new_items"]
+    )
+    assert gap["mean_diff"] == pytest.approx(-0.1, abs=0.01) and gap["hi"] < 0  # A minus B: CF is below it
+    assert ("gru", "personal_frequency") in {(p["a"], p["b"]) for p in out["paired"]}
+    json.dumps(out)
 
 
 def test_performance_payload_has_intervals_pairs_slices_and_selection():

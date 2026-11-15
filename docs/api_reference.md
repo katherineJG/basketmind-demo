@@ -36,6 +36,10 @@ The two analytics routes serve files written offline by `python scripts\export_a
 results and the processed data; nothing is recomputed per request). If the files are missing the routes answer `404` with that
 command in the message. `/analytics/cancellations` is descriptive history; no reversal model is served.
 
+`/models/performance` also lists the personal-frequency baseline (and its paired comparisons with BasketMind, item-item CF and the
+GRU) when `experiments/analysis/per_example_repeat.parquet` exists, which `scripts/run_repeat_baselines.py` writes. It is not a
+served model; see [repeat purchases](repeat_purchases.md).
+
 ## Things worth knowing
 
 - **Scores are not probabilities.** Each recommendation carries a raw model logit that ranks products for that customer. The

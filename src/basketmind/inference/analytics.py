@@ -14,6 +14,14 @@ from basketmind.evaluation import rigour
 
 GROUPS = {"gru", "abl_graph_customer", "abl_full"}  # deep learning models; the rest are reference methods
 SELECTED = "abl_graph_customer"  # chosen on validation among the BasketMind variants
+# Added after the course report (docs/repeat_purchases.md); not in rigour.NAMES, which older reports use.
+EXTRA_NAMES = {"personal_frequency": "Personal frequency"}
+EXTRA_PAIRS = [  # (A, B): A minus B
+    ("abl_graph_customer", "personal_frequency"),
+    ("item_item_cf", "personal_frequency"),
+    ("gru", "personal_frequency"),
+]
+NAMES = rigour.NAMES | EXTRA_NAMES
 
 
 def cancellation_payload(
@@ -70,13 +78,13 @@ def performance_payload(
     sd = rigour.seed_std(rows, "full", "recall@10")
     bias = rigour.bias_table(rows, popularity, n_items)
     models = []
-    for m in rigour.NAMES:
+    for m in NAMES:
         if m not in ov["mrr"].index:
             continue
         models.append(
             {
                 "id": m,
-                "name": rigour.NAMES[m],
+                "name": NAMES[m],
                 "group": "deep" if m in GROUPS else "other",
                 "selected": m == SELECTED,
                 "test": {k: _ci(ov[k].loc[m]) for k in ov},
@@ -90,7 +98,9 @@ def performance_payload(
     paired = []
     for policy, metrics in (("full", ["recall@10", "ndcg@10", "mrr"]), ("exclude_history", ["recall@10"])):
         for metric in metrics:
-            for _, r in rigour.paired(avg, slices, policy, metric, n_boot).iterrows():
+            for _, r in rigour.paired(
+                avg, slices, policy, metric, n_boot, rigour.PAIRS + EXTRA_PAIRS
+            ).iterrows():
                 paired.append(
                     {
                         "a": r["a"],

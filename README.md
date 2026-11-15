@@ -118,7 +118,8 @@ Six pages: executive overview, customer intelligence, next basket predictions, p
 intelligence and model performance. The dashboard only calls the API (set `BASKETMIND_API_URL`, or use the sidebar box,
 if it is not on `127.0.0.1:8000`). Pages that describe history and pages that show model predictions carry different
 banners, every chart has a table view, and the performance page shows the test results with their confidence intervals,
-including where BasketMind loses to the baselines.
+including where BasketMind loses to the baselines (the personal-frequency baseline included, once
+`scripts\run_repeat_baselines.py` has been run and `export_analytics.py` re-run).
 
 ## Running both with Docker
 

@@ -32,7 +32,12 @@ if __name__ == "__main__":
     task = load_task(proc)
     baskets = pd.read_parquet(proc / "baskets.parquet")
     slices = assign_slices(task, baskets.set_index("InvoiceNo")["Country"].to_dict(), "test")
-    rows = pd.read_parquet(root / "experiments" / "analysis" / "per_example_test.parquet")
+    analysis = root / "experiments" / "analysis"
+    rows = pd.read_parquet(analysis / "per_example_test.parquet")
+    extra = analysis / "per_example_repeat.parquet"  # scripts/run_repeat_baselines.py; optional
+    if extra.exists():
+        pf = pd.read_parquet(extra)
+        rows = pd.concat([rows, pf[pf["model"] == "personal_frequency"]], ignore_index=True)
     neural = aggregate(load_neural(root / "experiments" / "neural", VARIANTS))
     frames = [
         baseline_rows(root / "experiments" / "baselines" / "summary.csv").rename(
@@ -46,6 +51,9 @@ if __name__ == "__main__":
         r["model"]: {"recall@10": float(r["recall@10"]), "std": float(r["recall@10_std"])}
         for _, r in val.iterrows()
     }
+    if extra.exists():  # validation score the setting was chosen on (deterministic, so no seed spread)
+        chosen = json.loads((analysis / "repeat_baselines.json").read_text())["personal_frequency"]
+        validation["personal_frequency"] = {"recall@10": chosen["selected"]["best_val"], "std": 0.0}
     perf = performance_payload(rows, slices, validation, task.popularity, task.n_items)
     (out / "performance.json").write_text(json.dumps(perf, indent=2), encoding="utf-8")
     print(f"wrote {out / 'cancellations.json'} and {out / 'performance.json'}")
