@@ -1,0 +1,28 @@
+# Run from the repository root: docker compose -f deployment/docker-compose.yml up --build
+# Needs data/processed (scripts/run_m1.py) and artifacts/ (scripts/export_model.py, scripts/export_analytics.py) on the host.
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../data/processed:/app/data/processed:ro
+      - ../artifacts:/app/artifacts:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 10s
+      timeout: 6s
+      retries: 12
+      start_period: 90s  # the model and data load once at start-up (about 30 seconds on a desktop)
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.dashboard
+    ports:
+      - "8501:8501"
+    depends_on:
+      api:
+        condition: service_healthy

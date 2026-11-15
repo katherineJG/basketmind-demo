@@ -61,6 +61,13 @@ through `dashboard/utils/api_client.py`, which turns every failure into a messag
 historical descriptions (customers, products, cancellations, overview) and model output (predictions, performance), each with its
 own banner. Colours come from the project design system; charts use one hue plus grey and always offer a table view.
 
+`deployment/` runs the two as separate containers. The API image installs CPU torch (there is no ROCm in a container) and the
+project package, and sets `BASKETMIND_ROOT=/app`; the dashboard image installs only Streamlit, Plotly, pandas and httpx. Data and
+artifacts are mounted read-only rather than baked in, so the images stay small and contain nothing derived from the licensed data.
+The compose file starts the dashboard only after the API's `/health` check passes. The API image installs the whole `pyproject.toml`
+dependency list (including MLflow and Optuna, which serving does not need); splitting serving dependencies into an extra would
+slim it, but changes the packaging, so I have not done it.
+
 ## Checkpoints
 
 `save_checkpoint` stores weights, the constructor arguments, optional optimiser state and plain-value metadata; it refuses to

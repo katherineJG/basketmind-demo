@@ -1,0 +1,19 @@
+# BasketMind API. Build from the repository root: docker build -f deployment/Dockerfile.api .
+# The image holds code and configs only. data/processed and artifacts are mounted at run time (see docker-compose.yml).
+FROM python:3.12-slim
+
+# Containers have no ROCm GPU, so the API runs on CPU torch. It must go in before the project so pip keeps it.
+RUN pip install --no-cache-dir torch==2.9.1 --index-url https://download.pytorch.org/whl/cpu
+
+WORKDIR /app
+COPY pyproject.toml ./
+COPY src ./src
+COPY api ./api
+RUN pip install --no-cache-dir .
+COPY configs ./configs
+
+ENV BASKETMIND_ROOT=/app PYTHONUNBUFFERED=1
+RUN useradd --create-home app
+USER app
+EXPOSE 8000
+CMD ["uvicorn", "basketmind_api.main:app", "--host", "0.0.0.0", "--port", "8000"]

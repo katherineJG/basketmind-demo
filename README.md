@@ -7,8 +7,7 @@ co-purchase graph, and a customer-context network. The branches are fused into o
 head predicts quantities.
 
 > **Status:** the data pipeline, four baselines, the hybrid model, tuning, ablations, one-time test evaluation, the
-> statistical analysis, the course report, the REST API and the Streamlit dashboard are done. Docker deployment from the
-> blueprint is **not built yet**. This is an educational research prototype, not a production system.
+> statistical analysis, the course report, the REST API, the Streamlit dashboard and the Docker deployment are done. This is an educational research prototype, not a production system.
 
 ## What I found
 
@@ -108,6 +107,21 @@ if it is not on `127.0.0.1:8000`). Pages that describe history and pages that sh
 banners, every chart has a table view, and the performance page shows the test results with their confidence intervals,
 including where BasketMind loses to the baselines.
 
+## Running both with Docker
+
+```powershell
+python scripts\run_m1.py                      # once: data\processed from the raw dataset (see Setup)
+python scripts\export_model.py                # once: artifacts\checkpoints and model metadata
+python scripts\export_analytics.py            # once: artifacts\analytics
+docker compose -f deployment\docker-compose.yml up --build
+```
+
+The API is on http://localhost:8000 (`/health`, `/docs`) and the dashboard on http://localhost:8501. The dashboard waits for the
+API's health check, which takes about 30 seconds while the model and data load. The images contain code only: `data/processed` and
+`artifacts` are mounted read-only from your machine, because they are derived from the raw dataset and the trained checkpoint, which
+are not in Git. Containers have no ROCm GPU, so the API runs on CPU torch there; the output is the same model but scores can differ
+from the GPU run in the last decimal places. I built and ran this on Docker Desktop for Windows.
+
 ## Repository map
 
 | Path | Contents |
@@ -116,6 +130,7 @@ including where BasketMind loses to the baselines.
 | `configs/` | YAML configuration for data, features, graph, model, training, baselines and evaluation |
 | `api/` | The FastAPI service (routes, schemas, dependencies) |
 | `dashboard/` | The Streamlit dashboard: `app.py`, six pages, API client and theme |
+| `deployment/` | Dockerfiles for the API and the dashboard, and the compose file that runs both |
 | `scripts/` | Command-line entry points for each stage |
 | `tests/` | Unit, integration and model tests (`pytest`) |
 | `docs/` | Architecture, methodology, experiment log, model card, data dictionary and generated reports |
@@ -135,7 +150,7 @@ One retailer over two years; only 70% of test target items exist in the training
 [evaluation rigour report](docs/evaluation_rigour.md) adds customer-level confidence intervals, paired comparisons and slices. Its
 main finding: item-item CF's overall lead comes from customers with short histories, and the neural models only overtake it with
 11 or more earlier baskets. [Cancellation labels](docs/cancellation_labels.md) look usable as a weak 30-day label, but no reversal
-head is built yet. Next: the Docker deployment from the blueprint, and a repeat-purchase path for BasketMind.
+head is built yet. Next: a repeat-purchase path for BasketMind.
 
 ## Licence
 

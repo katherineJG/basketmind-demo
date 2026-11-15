@@ -1,0 +1,16 @@
+.git
+.claude
+.ruff_cache
+**/__pycache__
+*.egg-info
+data
+artifacts
+experiments
+mlruns
+mlartifacts
+notebooks
+reports
+tests
+docs
+*.md
+*.png
