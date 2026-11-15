@@ -30,6 +30,32 @@ class Targets:
         return Targets(**{k: v.to(device) for k, v in self.__dict__.items()})
 
 
+def build_batch(
+    task: Task,
+    store: FeatureStore,
+    histories: list[list[str]],
+    customer_idx: np.ndarray,
+    country_idx: np.ndarray,
+    customer_feats: np.ndarray,
+) -> Batch:
+    """Model inputs for customers whose histories are lists of invoice ids (oldest first, at least one each).
+
+    Used by training and by the inference service, so the two can never preprocess differently.
+    """
+    flat = [inv for h in histories for inv in h]
+    item_arrays = [task.basket_items[inv] for inv in flat]
+    sizes = np.array([len(a) for a in item_arrays])
+    return Batch(
+        item_ids=torch.as_tensor(np.concatenate(item_arrays) if sizes.sum() else np.zeros(0, dtype=np.int64)),
+        item_offsets=torch.as_tensor(np.cumsum(sizes) - sizes),
+        basket_counts=torch.as_tensor([len(h) for h in histories]),
+        basket_feats=torch.as_tensor(np.stack([store.basket_feats[inv] for inv in flat])),
+        customer_idx=torch.as_tensor(customer_idx),
+        country_idx=torch.as_tensor(country_idx),
+        customer_feats=torch.as_tensor(customer_feats),
+    )
+
+
 @dataclass
 class TrainingData:
     task: Task
@@ -66,20 +92,13 @@ class TrainingData:
         """Inputs and targets for examples `idx`; `rng` picks which target items train the quantity head."""
         task, store, ex = self.task, self.store, self.task.examples[split]
         arr = store.example_arrays[split]
-        hist = [ex["history_invoices"].iat[i] for i in idx]
-        flat = [inv for h in hist for inv in h]
-        item_arrays = [task.basket_items[inv] for inv in flat]
-        sizes = np.array([len(a) for a in item_arrays])
-        batch = Batch(
-            item_ids=torch.as_tensor(
-                np.concatenate(item_arrays) if sizes.sum() else np.zeros(0, dtype=np.int64)
-            ),
-            item_offsets=torch.as_tensor(np.cumsum(sizes) - sizes),
-            basket_counts=torch.as_tensor([len(h) for h in hist]),
-            basket_feats=torch.as_tensor(np.stack([store.basket_feats[inv] for inv in flat])),
-            customer_idx=torch.as_tensor(arr["customer_idx"][idx]),
-            country_idx=torch.as_tensor(arr["country_idx"][idx]),
-            customer_feats=torch.as_tensor(arr["customer_feats"][idx]),
+        batch = build_batch(
+            task,
+            store,
+            [ex["history_invoices"].iat[i] for i in idx],
+            arr["customer_idx"][idx],
+            arr["country_idx"][idx],
+            arr["customer_feats"][idx],
         )
         b, n_items, k = len(idx), task.n_items, self.quantity_samples
         basket_hot = torch.zeros(b, n_items, dtype=torch.bool)

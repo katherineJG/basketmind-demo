@@ -69,8 +69,34 @@ def _standardise(
     return out, {"mean": mean.tolist(), "std": std.tolist()}
 
 
+def customer_history_index(baskets: pd.DataFrame) -> dict[str, tuple[np.ndarray, ...]]:
+    """Per customer: sorted basket timestamps, cumulative products, quantity and value, countries.
+
+    Build it once and pass it to `customer_feature_rows` to avoid regrouping every basket on each call.
+    """
+    b = baskets.sort_values(["CustomerID", "timestamp", "InvoiceNo"])
+    index = {}
+    for cust, g in b.groupby("CustomerID"):
+        index[cust] = (
+            g["timestamp"].to_numpy(),
+            np.concatenate([[0.0], np.cumsum(g["n_items"].to_numpy(dtype=float))]),
+            np.concatenate([[0.0], np.cumsum(g["total_quantity"].clip(lower=0).to_numpy(dtype=float))]),
+            np.concatenate([[0.0], np.cumsum(g["total_value"].clip(lower=0).to_numpy(dtype=float))]),
+            g["Country"].to_numpy(),
+        )
+    return index
+
+
+def normalise_customer_feats(raw: np.ndarray, stats: dict[str, list[float]]) -> np.ndarray:
+    """Standardise raw customer features with the TRAIN mean/std in `FeatureStore.stats['customer']`."""
+    return ((raw - np.asarray(stats["mean"])) / np.asarray(stats["std"])).astype(np.float32)
+
+
 def customer_feature_rows(
-    examples: pd.DataFrame, baskets: pd.DataFrame, recency_reference: str
+    examples: pd.DataFrame,
+    baskets: pd.DataFrame,
+    recency_reference: str,
+    index: dict[str, tuple[np.ndarray, ...]] | None = None,
 ) -> tuple[np.ndarray, list[str]]:
     """Raw 6 customer features per example, from baskets strictly before the target.
 
@@ -78,16 +104,7 @@ def customer_feature_rows(
     4 log1p(days from the last past basket to the target time, or 0)  5 log1p(mean days between past baskets)
     Returns the matrix and the country of each example's most recent past basket.
     """
-    b = baskets.sort_values(["CustomerID", "timestamp", "InvoiceNo"])
-    per_customer = {}
-    for cust, g in b.groupby("CustomerID"):
-        per_customer[cust] = (
-            g["timestamp"].to_numpy(),
-            np.concatenate([[0.0], np.cumsum(g["n_items"].to_numpy(dtype=float))]),
-            np.concatenate([[0.0], np.cumsum(g["total_quantity"].clip(lower=0).to_numpy(dtype=float))]),
-            np.concatenate([[0.0], np.cumsum(g["total_value"].clip(lower=0).to_numpy(dtype=float))]),
-            g["Country"].to_numpy(),
-        )
+    per_customer = index if index is not None else customer_history_index(baskets)
     rows = np.zeros((len(examples), 6))
     countries: list[str] = []
     for i, (cust, t) in enumerate(zip(examples["CustomerID"], examples["target_timestamp"], strict=True)):
@@ -133,12 +150,13 @@ def build_feature_store(task: Task, baskets: pd.DataFrame, feat_cfg: dict[str, A
         raw_rows[split], countries[split] = customer_feature_rows(ex, baskets, feat_cfg["recency_reference"])
     mean = raw_rows["train"].mean(axis=0)
     std = np.where(raw_rows["train"].std(axis=0) < 1e-8, 1.0, raw_rows["train"].std(axis=0))
+    customer_stats = {"mean": mean.tolist(), "std": std.tolist()}
     arrays = {}
     for split, ex in task.examples.items():
         arrays[split] = {
             "customer_idx": np.array([customer_index.get(c, 0) for c in ex["CustomerID"]], dtype=np.int64),
             "country_idx": np.array([country_index.get(c, 0) for c in countries[split]], dtype=np.int64),
-            "customer_feats": ((raw_rows[split] - mean) / std).astype(np.float32),
+            "customer_feats": normalise_customer_feats(raw_rows[split], customer_stats),
         }
-    stats = {"basket": basket_stats, "customer": {"mean": mean.tolist(), "std": std.tolist()}}
+    stats = {"basket": basket_stats, "customer": customer_stats}
     return FeatureStore(basket_feats, quantities, customer_index, country_index, arrays, stats)
