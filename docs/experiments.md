@@ -71,8 +71,32 @@ attributable to a real preceding purchase; a 90-day label is too noisy (68%). 91
 and the 9% that do not are concentrated in the first three months of the data. Verdict: usable as a weak label with split-boundary
 cutting, not yet built. See [`cancellation_labels.md`](cancellation_labels.md).
 
+## 9. Repeat purchases and a missing baseline
+
+Full tables: [`repeat_purchases.md`](repeat_purchases.md). Analysis of the saved test results (nothing retrained), plus two new
+baselines tuned on validation and evaluated on test once each.
+
+- **Repeats dominate.** 55.3% of in-catalogue target items are repeats of something the customer bought before, and 91% of test
+  examples contain at least one. (An earlier raw count gave 48%: it included target items outside the catalogue, which are mostly
+  new.) Between 90% and 96% of every personalised model's Recall@10 is earned on repeat targets.
+- **The baseline I left out is the strongest.** Ranking a customer's own past items by recency-weighted purchase count
+  (decay 0.9 per basket, chosen on validation) scores test Recall@10 0.224 [0.210, 0.236], against 0.145 for item-item CF and 0.125
+  for BasketMind. Blending in item-item CF (weight 0.25, chosen on validation) gives 0.225 and adds nothing on repeat targets
+  (+0.0002 [-0.0015, +0.0018]); it only adds a little on new items. Both chosen settings are inside their grids, not at an edge.
+- **Sanity checks.** Under the new-items-only policy the purely personal model scores 0.024, which is just its popularity
+  tie-break, and the blend scores 0.061, the same as item-item CF's own new-item score. Validation (0.210) and test (0.224) agree.
+- **Where BasketMind loses.** It trails item-item CF by 0.024 on repeat targets and leads it by 0.004 on new targets (both
+  intervals exclude zero), and trails personal frequency by 0.110 on repeat targets. It spends only 48% of its top-10 slots on the
+  customer's history, against 98% for personal frequency, and those history slots hit about as often per slot (0.220 against
+  0.221). Its other slots hit 0.031 of the time. This suggests, but does not show, that a better repeat score could recover
+  accuracy; the marginal history items beyond its top few are likely weaker than the average, so the gain is uncertain.
+- **Consequence for earlier claims.** The documented baseline set did not include this baseline, so "item-item CF is the strongest
+  baseline" (README, final comparison, course report) was true only of the set I had run. The earlier per-slice finding stands as a
+  statement about CF versus the neural models, not about the best achievable score.
+
 ## Open questions
 
-Why the Transformer branch does not help (and why the GRU overtakes item-item CF only with long histories); whether a
-repeat-purchase path closes the gap (item-item CF also leads on new items, so probably not entirely); whether the narrow
-coverage of BasketMind's recommendations can be widened without losing accuracy.
+Why the Transformer branch does not help (and why the GRU overtakes item-item CF only with long histories); whether giving
+BasketMind a repeat-purchase score (blending a personal-frequency term into its logits, weight chosen on validation) closes the
+gap to personal frequency, and whether a learned version would add anything; whether the narrow coverage of BasketMind's
+recommendations can be widened without losing accuracy.

@@ -33,6 +33,18 @@ class Task:
                 out[row, torch.as_tensor(np.concatenate(idx), device=device)] = 1.0
         return out
 
+    def history_weighted(self, batch: pd.DataFrame, device: torch.device, decay: float = 1.0) -> torch.Tensor:
+        """(B, n_items) purchase counts from each example's history, oldest basket first.
+
+        A basket `n` baskets older than the newest one counts `decay ** n`, so decay=1 is a plain count and
+        decay<1 favours recent purchases. History invoices are in chronological order.
+        """
+        out = np.zeros((len(batch), self.n_items), dtype=np.float32)
+        for row, hist in enumerate(batch["history_invoices"]):
+            for age, inv in enumerate(reversed(list(hist))):
+                out[row, self.basket_items[inv]] += decay**age
+        return torch.as_tensor(out, device=device)
+
     def target_hot(self, batch: pd.DataFrame, device: torch.device) -> torch.Tensor:
         out = torch.zeros(len(batch), self.n_items, dtype=torch.bool, device=device)
         for row, idx in enumerate(batch["target_idx"]):

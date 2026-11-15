@@ -60,6 +60,48 @@ class ItemItemCF(Recommender):
         return task.history_hot(batch, device) @ self.sim
 
 
+class PersonalFrequency(Recommender):
+    """A customer's own past purchases ranked by (recency-weighted) count, optionally blended with CF.
+
+    score = count / max(count) + w * cf / max(cf), per customer. `w` and the recency `decay` (see
+    Task.history_weighted) are chosen on VALIDATION Recall@10 from small grids; w = 0 is purely personal.
+    A tiny popularity term breaks ties among items the customer never bought. This is the standard strong
+    baseline for repeat purchases, so any repeat-purchase path added to BasketMind has to beat it.
+    """
+
+    stochastic = False
+    TIE_BREAK = 1e-5
+
+    def __init__(self, name: str, decays: tuple[float, ...], cf_weights: tuple[float, ...]):
+        self.name, self.decays, self.cf_weights = name, decays, cf_weights
+        self.decay, self.w = decays[0], cf_weights[0]
+
+    def fit(self, task, device, seed, evaluate):
+        if any(self.cf_weights):
+            cf = ItemItemCF()
+            cf.fit(task, device, seed, evaluate)
+            self.sim = cf.sim
+        pop = task.popularity / task.popularity.max()
+        self.pop = torch.as_tensor(pop, dtype=torch.float32, device=device)
+        grid, best = [], (-1.0, None)
+        for decay in self.decays:
+            for w in self.cf_weights:
+                self.decay, self.w = decay, w
+                val = evaluate(self)
+                grid.append({"decay": decay, "w": w, "val": val})
+                best = max(best, (val, (decay, w)), key=lambda t: t[0])
+        self.decay, self.w = best[1]
+        return {"best_val": best[0], "decay": self.decay, "cf_weight": self.w, "grid": grid}
+
+    def score(self, task, batch, device):
+        counts = task.history_weighted(batch, device, self.decay)
+        out = counts / counts.amax(1, keepdim=True).clamp(min=1e-9)
+        if self.w:
+            cf = task.history_hot(batch, device) @ self.sim
+            out = out + self.w * cf / cf.amax(1, keepdim=True).clamp(min=1e-9)
+        return out + self.TIE_BREAK * self.pop
+
+
 class MatrixFactorisation(Recommender):
     """Customer/item embeddings trained with full-matrix weighted BCE on the training baskets.
 
