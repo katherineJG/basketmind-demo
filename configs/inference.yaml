@@ -1,3 +1,2 @@
-checkpoint: artifacts/checkpoints/best.ckpt
+checkpoint: artifacts/checkpoints/best.pt   # written by scripts/export_model.py
 top_k: 10
-candidate_batch_size: 1024

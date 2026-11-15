@@ -6,9 +6,9 @@ course. The model combines a causal Transformer over a customer's purchase histo
 co-purchase graph, and a customer-context network. The branches are fused into one score per product, and a second
 head predicts quantities.
 
-> **Status:** the data pipeline, four baselines, the hybrid model, tuning, ablations, one-time test evaluation and the
-> course report are done. The API, dashboard and Docker deployment from the blueprint are **not built yet**.
-> This is an educational research prototype, not a production system.
+> **Status:** the data pipeline, four baselines, the hybrid model, tuning, ablations, one-time test evaluation, the
+> statistical analysis, the course report and the REST API are done. The dashboard and Docker deployment from the
+> blueprint are **not built yet**. This is an educational research prototype, not a production system.
 
 ## What I found
 
@@ -84,6 +84,16 @@ python scripts\analyse_results.py                          # docs/evaluation_rig
 python scripts\analyse_cancellations.py                    # docs/cancellation_labels.md
 ```
 
+## Running the API
+
+```powershell
+python scripts\export_model.py                # copies the best-validation BasketMind checkpoint to artifacts\
+python -m uvicorn basketmind_api.main:app     # then open http://127.0.0.1:8000/docs
+```
+
+It serves next-basket recommendations, customer and product views and evidence-based explanations from the real model
+(about 70 ms per recommendation after start-up). See the [API reference](docs/api_reference.md).
+
 ## Repository map
 
 | Path | Contents |
@@ -101,7 +111,7 @@ python scripts\analyse_cancellations.py                    # docs/cancellation_l
 [Architecture](docs/architecture.md) · [Research methodology](docs/research_methodology.md) ·
 [Experiments](docs/experiments.md) · [Model card](docs/model_card.md) · [Data dictionary](docs/data_dictionary.md) ·
 [Data quality report](docs/data_quality_report.md) · [Evaluation rigour](docs/evaluation_rigour.md) ·
-[Cancellation labels](docs/cancellation_labels.md) · [API reference (planned)](docs/api_reference.md)
+[Cancellation labels](docs/cancellation_labels.md) · [API reference](docs/api_reference.md)
 
 ## Limitations and what is next
 
@@ -109,7 +119,7 @@ One retailer over two years; only 70% of test target items exist in the training
 [evaluation rigour report](docs/evaluation_rigour.md) adds customer-level confidence intervals, paired comparisons and slices. Its
 main finding: item-item CF's overall lead comes from customers with short histories, and the neural models only overtake it with
 11 or more earlier baskets. [Cancellation labels](docs/cancellation_labels.md) look usable as a weak 30-day label, but no reversal
-head is built yet. Next: a repeat-purchase path for BasketMind, then the API, dashboard and Docker deployment from the blueprint.
+head is built yet. Next: the Streamlit dashboard and Docker deployment from the blueprint, and a repeat-purchase path for BasketMind.
 
 ## Licence
 

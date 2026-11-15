@@ -36,6 +36,37 @@ def training_data(synthetic_root):
 
 
 @pytest.fixture
+def service_parts(training_data, synthetic_root):
+    """(service, training_data, baskets): an inference service around a random model and a hand-made graph."""
+    import pandas as pd
+    import torch
+
+    from basketmind.graph import GraphSnapshot
+    from basketmind.inference import BasketMindService
+    from basketmind.models import BasketMindModel
+    from basketmind.utils.device import get_device
+    from basketmind.utils.seed import seed_everything
+
+    dev = get_device()
+    baskets = pd.read_parquet(synthetic_root / "data/processed/baskets.parquet")
+    task, store = training_data.task, training_data.store
+    seed_everything(0)
+    model = BasketMindModel(load_config("model"), task.n_items, store.n_customers, store.n_countries).to(dev)
+    graph = GraphSnapshot(  # the two synthetic products are linked, PPMI weight 0.7
+        torch.tensor([[0, 1], [1, 0]]),
+        torch.tensor([0.7, 0.7]),
+        baskets["timestamp"].max(),
+        task.n_items,
+        len(baskets),
+    )
+    desc = {s: f"product {s}" for s in task.items}
+    service = BasketMindService(
+        model, task, store, baskets, graph, desc, load_config("features"), dev, metadata={"variant": "test"}
+    )
+    return service, training_data, baskets
+
+
+@pytest.fixture
 def data_cfg():
     return load_config("data")
 

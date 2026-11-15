@@ -47,6 +47,15 @@ Every stage reads and writes files under `data/processed/`, so each can be rerun
 `branches: {temporal, graph, customer}` in `configs/model.yaml` switch components on or off for ablations.
 `untie_output: true` scores items with a separate output table instead (off by default: it scored lower on validation).
 
+## Serving
+
+`inference.BasketMindService` turns a customer's history into ranked recommendations and answers the profile, history, product,
+related-product, explanation and overview questions. It rebuilds the feature store with the training code, builds one product graph
+snapshot as of the end of the data, and reuses `training.data.build_batch` and `features.build.customer_feature_rows`, so there is
+a single implementation of preprocessing. `api/basketmind_api` wraps it in FastAPI routes with Pydantic response models
+([API reference](api_reference.md)). `scripts/export_model.py` copies the best-validation checkpoint to `artifacts/` with a
+metadata file; the API reads both.
+
 ## Checkpoints
 
 `save_checkpoint` stores weights, the constructor arguments, optional optimiser state and plain-value metadata; it refuses to
