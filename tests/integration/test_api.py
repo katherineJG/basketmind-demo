@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
@@ -24,6 +25,8 @@ def test_every_blueprint_route_exists_and_is_documented(client):
         "/products/{product_id}",
         "/products/{product_id}/related",
         "/analytics/overview",
+        "/analytics/cancellations",
+        "/models/performance",
         "/models/metadata",
     }
 
@@ -89,6 +92,29 @@ def test_product_overview_and_metadata_routes(client):
     ov = client.get("/analytics/overview").json()
     assert ov["baskets"] == 6 and ov["customers"] == 2 and ov["top_products"][0]["product_id"] == "22000"
     assert client.get("/models/metadata").json()["metadata"] == {"variant": "test"}
+
+
+def test_precomputed_analytics_routes_validate_the_exported_payloads(client):
+    from tests.unit.test_cancellation_labels import REGEX, scenario
+    from tests.unit.test_rigour import synthetic
+
+    from basketmind.inference import analytics
+
+    for path in ("/analytics/cancellations", "/models/performance"):  # nothing exported yet
+        r = client.get(path)
+        assert r.status_code == 404 and "export_analytics" in r.json()["detail"], path
+
+    rows, slices = synthetic()
+    client.service.analytics = {
+        "cancellations": analytics.cancellation_payload(*scenario(), REGEX, {}),
+        "performance": analytics.performance_payload(rows, slices, {}, np.arange(50, 0, -1.0), 50, n_boot=50),
+    }
+    canc = client.get("/analytics/cancellations").json()
+    assert canc["cancellation_lines"] == 3 and set(canc["horizons"]) == {"30", "90"} and canc["monthly"]
+    perf = client.get("/models/performance").json()
+    assert {m["id"] for m in perf["models"]} == {"item_item_cf", "gru", "popularity"}
+    assert perf["models"][0]["test"]["recall@10"]["lo"] < perf["models"][0]["test"]["recall@10"]["hi"]
+    assert perf["meta"]["n_test_examples"] == 400 and perf["slices"]["history_bucket"]
 
 
 def test_api_starts_degraded_when_the_model_cannot_be_loaded():

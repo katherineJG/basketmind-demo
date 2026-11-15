@@ -16,6 +16,7 @@ data/graphs/*
 artifacts/checkpoints/*
 artifacts/mappings/*
 artifacts/model_metadata/*
+artifacts/analytics/*
 experiments/*
 mlruns/
 mlartifacts/

@@ -107,6 +107,16 @@ def overview(service: Service) -> s.Overview:
     return s.Overview(**service.overview())
 
 
+@router.get("/analytics/cancellations", response_model=s.CancellationAnalytics)
+def cancellations(service: Service) -> s.CancellationAnalytics:
+    return s.CancellationAnalytics(**_or_404(service.analytic, "cancellations"))
+
+
+@router.get("/models/performance", response_model=s.PerformanceAnalytics)
+def model_performance(service: Service) -> s.PerformanceAnalytics:
+    return s.PerformanceAnalytics(**_or_404(service.analytic, "performance"))
+
+
 @router.get("/models/metadata", response_model=s.ModelMetadata)
 def model_metadata(service: Service) -> s.ModelMetadata:
     return s.ModelMetadata(metadata=service.metadata)

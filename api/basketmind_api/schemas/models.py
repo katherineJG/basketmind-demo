@@ -138,6 +138,87 @@ class Overview(BaseModel):
     top_countries: list[CountryCount]
 
 
+class CancellationMonth(BaseModel):
+    month: str
+    purchase_lines: int
+    cancellation_lines: int
+    cancellation_rate: float
+
+
+class CancelledProduct(BaseModel):
+    product_id: str
+    description: str
+    cancellation_lines: int
+    share_of_lines: float
+
+
+class LabelHorizon(BaseModel):
+    purchase_lines_with_complete_window: int
+    base_rate: float
+    attribution_precision: float
+
+
+class CancellationAnalytics(BaseModel):
+    """Historical cancellation analysis. No reversal model is served; this shows whether one is feasible."""
+
+    purchase_lines: int
+    cancellation_lines: int
+    cancellation_share_of_lines: float
+    linked: dict[str, float]
+    horizons: dict[str, LabelHorizon]
+    monthly: list[CancellationMonth]
+    top_cancelled: list[CancelledProduct]
+
+
+class Interval(BaseModel):
+    mean: float
+    lo: float
+    hi: float
+
+
+class ModelPerformance(BaseModel):
+    id: str
+    name: str
+    group: str = Field(description="'deep' for the deep learning models, 'other' for reference methods")
+    selected: bool = Field(
+        description="True for the BasketMind variant chosen on validation (the one served)"
+    )
+    test: dict[str, Interval]
+    test_new_items: dict[str, Interval]
+    validation: dict[str, float] | None
+    seed_std_recall10: float
+    coverage: float
+    head_share: float
+
+
+class PairedComparison(BaseModel):
+    a: str
+    b: str
+    metric: str
+    new_items: bool
+    mean_diff: float
+    lo: float
+    hi: float
+    p: float
+
+
+class SliceCell(BaseModel):
+    slice: str
+    model: str
+    mean: float
+    half: float
+    n: int
+
+
+class PerformanceAnalytics(BaseModel):
+    """Test-set results with customer-level 95% intervals. Built offline from finished experiments."""
+
+    models: list[ModelPerformance]
+    paired: list[PairedComparison]
+    slices: dict[str, list[SliceCell]]
+    meta: dict[str, Any]
+
+
 class ModelMetadata(BaseModel):
     metadata: dict[str, Any]
     disclaimer: str = (

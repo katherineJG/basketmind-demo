@@ -52,6 +52,14 @@ class Recommendation:
     )
 
 
+def load_descriptions(processed_dir: Path) -> dict[str, str]:
+    """The most common product text for each stock code."""
+    events = pd.read_parquet(processed_dir / "purchase_events.parquet", columns=["StockCode", "Description"])
+    return (
+        events.dropna().groupby("StockCode")["Description"].agg(lambda s: s.value_counts().index[0]).to_dict()
+    )
+
+
 class BasketMindService:
     def __init__(
         self,
@@ -65,9 +73,11 @@ class BasketMindService:
         device: torch.device,
         as_of: pd.Timestamp | None = None,
         metadata: dict[str, Any] | None = None,
+        analytics: dict[str, Any] | None = None,
     ):
         self.model, self.task, self.store, self.graph = model.eval(), task, store, graph
         self.feat_cfg, self.device, self.metadata = feat_cfg, device, metadata or {}
+        self.analytics = analytics or {}  # precomputed by scripts/export_analytics.py
         self.descriptions = descriptions
         self.baskets = baskets
         self.as_of = (
@@ -108,13 +118,22 @@ class BasketMindService:
         metadata |= {"checkpoint": cfg["checkpoint"], "checkpoint_metadata": payload["metadata"]}
         as_of = baskets["timestamp"].max() + pd.Timedelta(minutes=1)
         graph = build_product_graph(baskets, as_of, task.items, load_config("graph", root / "configs"))
-        events = pd.read_parquet(
-            proc / "purchase_events.parquet", columns=["StockCode", "Description"]
-        ).dropna()
-        descriptions = (
-            events.groupby("StockCode")["Description"].agg(lambda s: s.value_counts().index[0]).to_dict()
+        analytics = {
+            p.stem: json.loads(p.read_text()) for p in (root / "artifacts" / "analytics").glob("*.json")
+        }
+        return cls(
+            model,
+            task,
+            store,
+            baskets,
+            graph,
+            load_descriptions(proc),
+            feat_cfg,
+            dev,
+            as_of,
+            metadata,
+            analytics,
         )
-        return cls(model, task, store, baskets, graph, descriptions, feat_cfg, dev, as_of, metadata)
 
     # ------------------------------------------------------------------------------------ helpers
     def _describe(self, product_id: str) -> str:
@@ -312,6 +331,12 @@ class BasketMindService:
             ],
             "popularity_rank": int((self.task.popularity > self.task.popularity[idx]).sum()) + 1,
         }
+
+    def analytic(self, name: str) -> dict[str, Any]:
+        """A precomputed analysis ('cancellations' or 'performance'); NotFound if it has not been exported."""
+        if name not in self.analytics:
+            raise NotFound(f"analytics {name!r} not found; run scripts/export_analytics.py")
+        return self.analytics[name]
 
     def overview(self) -> dict[str, Any]:
         b = self.baskets

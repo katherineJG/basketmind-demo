@@ -28,7 +28,13 @@ Startup needs `data/processed/` (from `scripts/run_m1.py`) and the exported chec
 | GET | `/products/{product_id}` | Description, how many baskets contain it, last sold |
 | GET | `/products/{product_id}/related?k` | Strongest co-purchase neighbours in the product graph |
 | GET | `/analytics/overview` | Descriptive statistics of the historical data |
+| GET | `/analytics/cancellations` | Historical cancellation rates, most-cancelled products and the 30/90-day label feasibility figures |
+| GET | `/models/performance` | Test results with customer-level 95% intervals, paired comparisons and history-length slices |
 | GET | `/models/metadata` | The served variant, seed, parameters, validation and test metrics |
+
+The two analytics routes serve files written offline by `python scripts\export_analytics.py` (it reads the saved per-example test
+results and the processed data; nothing is recomputed per request). If the files are missing the routes answer `404` with that
+command in the message. `/analytics/cancellations` is descriptive history; no reversal model is served.
 
 ## Things worth knowing
 
