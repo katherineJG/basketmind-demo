@@ -110,6 +110,7 @@ NAMES = {
     "abl_full": "BasketMind (full hybrid)",
     "matrix_factorisation": "Matrix factorisation",
     "popularity": "Popularity",
+    "abl_graph_customer_repeat": "BasketMind + repeat score",
     "personal_frequency": "Personal frequency",
     "personal_frequency_cf": "Personal frequency + CF",
 }
@@ -117,6 +118,9 @@ PAIRS = [  # (A, B): the reported difference is A minus B
     ("abl_graph_customer", "item_item_cf"),
     ("abl_graph_customer", "gru"),
     ("abl_graph_customer", "personal_frequency"),
+    ("abl_graph_customer_repeat", "abl_graph_customer"),
+    ("abl_graph_customer_repeat", "personal_frequency"),
+    ("abl_graph_customer_repeat", "personal_frequency_cf"),
     ("personal_frequency_cf", "item_item_cf"),
     ("personal_frequency_cf", "personal_frequency"),
 ]

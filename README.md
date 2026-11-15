@@ -16,8 +16,9 @@ only and evaluating the test split once per run. **BasketMind did not beat the s
 
 | Test, repeat purchases allowed | Recall@10 | NDCG@10 | MRR |
 |---|---:|---:|---:|
-| Personal frequency (added after the report, see below) | **0.224** | **0.293** | **0.470** |
-| Personal frequency + item-item CF (added after the report) | **0.225** | **0.293** | 0.462 |
+| BasketMind (graph + customer) + repeat score (added after the report) | **0.228** | n/a | n/a |
+| Personal frequency (added after the report, see below) | 0.224 | **0.293** | **0.470** |
+| Personal frequency + item-item CF (added after the report) | 0.225 | **0.293** | 0.462 |
 | Item-item collaborative filtering | 0.145 | 0.188 | 0.326 |
 | Tuned GRU | 0.131 ± 0.001 | 0.175 | 0.325 |
 | **BasketMind (graph + customer), selected on validation** | 0.125 ± 0.004 | 0.164 | 0.314 |
@@ -35,6 +36,9 @@ new-items-only setting, are in [`docs/final_comparison.md`](docs/final_compariso
   them scores 0.224 Recall@10 on test, 55% above item-item CF and 79% above BasketMind. It is the standard baseline for this
   task and I should have included it from the start. The course report, which I submitted before I ran it, still calls
   item-item CF the strongest baseline; that is no longer true. See [`docs/repeat_purchases.md`](docs/repeat_purchases.md).
+- **Adding that same repeat score to BasketMind lifts it from 0.125 to 0.228**, level with the baseline (+0.003 over it). The
+  improvement comes from the count term, not the network, and it costs new-item discovery: 98% of the top 10 becomes the
+  customer's own history. The API still serves the unchanged model.
 
 The full write-up is the course report: [`reports/BasketMind_Final_Project_Report.pdf`](reports/BasketMind_Final_Project_Report.pdf).
 
@@ -157,7 +161,8 @@ One retailer over two years; only 70% of test target items exist in the training
 main finding: item-item CF's overall lead comes from customers with short histories, and the neural models only overtake it with
 11 or more earlier baskets. [Cancellation labels](docs/cancellation_labels.md) look usable as a weak 30-day label, but no reversal
 head is built yet. [Repeat purchases](docs/repeat_purchases.md) are 55% of target items, and almost all of every model's accuracy
-comes from them. Next: test whether giving BasketMind a repeat-purchase score closes the gap to the personal-frequency baseline.
+comes from them. Giving BasketMind a repeat score closes the gap but does not beat the baseline by more than 0.003. What is left
+is new-item discovery, where item-item CF still leads.
 
 ## Licence
 

@@ -88,15 +88,27 @@ baselines tuned on validation and evaluated on test once each.
 - **Where BasketMind loses.** It trails item-item CF by 0.024 on repeat targets and leads it by 0.004 on new targets (both
   intervals exclude zero), and trails personal frequency by 0.110 on repeat targets. It spends only 48% of its top-10 slots on the
   customer's history, against 98% for personal frequency, and those history slots hit about as often per slot (0.220 against
-  0.221). Its other slots hit 0.031 of the time. This suggests, but does not show, that a better repeat score could recover
-  accuracy; the marginal history items beyond its top few are likely weaker than the average, so the gain is uncertain.
+  0.221). Its other slots hit 0.031 of the time. The next bullet tests whether spending those slots on history items helps.
+- **A repeat score closes the gap, and the network adds almost nothing on top.** I added `lam * count / max(count)` (the
+  personal-frequency term, recency decay 0.9) to the unchanged BasketMind logits. `lam` and the decay were chosen per seed on
+  validation (decay 0.9 for all three seeds; weight 16, 32 and 32; validation was flat from 16 to 64, so the grid did not limit
+  it), with no retraining, and the three seeds were then evaluated on test once. Test Recall@10 goes from 0.125 to 0.228
+  (seeds 0.227, 0.229, 0.227), against 0.224 for personal frequency alone. The gain over personal frequency is small: +0.0034
+  [+0.0020, +0.0048] on repeat targets and +0.0003 [-0.0000, +0.0006] on new targets. Against the personal frequency + CF blend
+  it is +0.0032 on repeats and -0.0007 on new targets. So the network does order a customer's own items slightly better than
+  counting does, but the whole improvement over the old BasketMind (+0.1135 on repeat targets) comes from the count term.
+- **What the repeat score costs.** 98% of the top-10 slots now hold history items, and the part of Recall@10 earned on new
+  targets falls from 0.012 to 0.001 (-0.0113 [-0.0123, -0.0104]). Under the new-items-only policy the model is unchanged (0.049
+  against 0.061 for item-item CF), so it still loses on discovery. It is a better answer to "what will this customer buy
+  again?", not to "what should we show them that is new?".
 - **Consequence for earlier claims.** The documented baseline set did not include this baseline, so "item-item CF is the strongest
   baseline" (README, final comparison, course report) was true only of the set I had run. The earlier per-slice finding stands as a
   statement about CF versus the neural models, not about the best achievable score.
 
 ## Open questions
 
-Why the Transformer branch does not help (and why the GRU overtakes item-item CF only with long histories); whether giving
-BasketMind a repeat-purchase score (blending a personal-frequency term into its logits, weight chosen on validation) closes the
-gap to personal frequency, and whether a learned version would add anything; whether the narrow coverage of BasketMind's
-recommendations can be widened without losing accuracy.
+Why the Transformer branch does not help (and why the GRU overtakes item-item CF only with long histories); whether a
+repeat score *learned* inside the network (rather than added afterwards) would beat the +0.003 the logits add over counting,
+which the evidence so far does not support; whether anything beats item-item CF on genuinely new items, where BasketMind
+(0.049) and the GRU (0.052) both trail it (0.061); whether the narrow coverage of BasketMind's recommendations can be widened
+without losing accuracy. The repeat score is analysis only: the API still serves the unchanged BasketMind model.

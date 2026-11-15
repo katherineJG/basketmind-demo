@@ -21,6 +21,7 @@ all targets of that example), so the two right-hand columns add up to the total.
 | BasketMind (full hybrid) | 0.108 | 0.095 [0.089, 0.102] | 0.013 [0.012, 0.014] |
 | Matrix factorisation | 0.108 | 0.104 [0.097, 0.112] | 0.004 [0.004, 0.005] |
 | Popularity | 0.047 | 0.039 [0.036, 0.042] | 0.008 [0.007, 0.009] |
+| BasketMind + repeat score | 0.228 | 0.227 [0.214, 0.240] | 0.001 [0.000, 0.001] |
 | Personal frequency | 0.224 | 0.224 [0.210, 0.236] | 0.000 [0.000, 0.001] |
 | Personal frequency + CF | 0.225 | 0.224 [0.211, 0.237] | 0.002 [0.001, 0.002] |
 
@@ -36,6 +37,7 @@ Among examples that have at least one target of that kind: the share of those ta
 | BasketMind (full hybrid) | 0.154 [0.145, 0.162] | 0.030 [0.028, 0.033] |
 | Matrix factorisation | 0.174 [0.164, 0.184] | 0.009 [0.007, 0.010] |
 | Popularity | 0.068 [0.064, 0.073] | 0.017 [0.015, 0.019] |
+| BasketMind + repeat score | 0.380 [0.361, 0.398] | 0.001 [0.001, 0.002] |
 | Personal frequency | 0.374 [0.355, 0.393] | 0.001 [0.000, 0.001] |
 | Personal frequency + CF | 0.371 [0.352, 0.389] | 0.003 [0.002, 0.004] |
 
@@ -51,6 +53,7 @@ Share of the ten slots filled with items from the customer's own history, and ho
 | BasketMind (full hybrid) | 42% | 0.217 [0.205, 0.229] | 0.030 [0.028, 0.032] |
 | Matrix factorisation | 76% | 0.140 [0.133, 0.146] | 0.024 [0.021, 0.026] |
 | Popularity | 30% | 0.168 [0.155, 0.181] | 0.016 [0.014, 0.017] |
+| BasketMind + repeat score | 98% | 0.226 [0.216, 0.235] | 0.019 [0.014, 0.025] |
 | Personal frequency | 98% | 0.221 [0.212, 0.230] | 0.013 [0.008, 0.019] |
 | Personal frequency + CF | 98% | 0.222 [0.213, 0.232] | 0.035 [0.025, 0.045] |
 
@@ -67,6 +70,12 @@ the intervals; p-values are not corrected for multiple testing.
 | BasketMind (graph + customer) minus Tuned GRU | from new targets | +0.0010 [+0.0003, +0.0017] | gap excludes zero |
 | BasketMind (graph + customer) minus Personal frequency | from repeat targets | -0.1101 [-0.1183, -0.1023] | gap excludes zero |
 | BasketMind (graph + customer) minus Personal frequency | from new targets | +0.0116 [+0.0106, +0.0126] | gap excludes zero |
+| BasketMind + repeat score minus BasketMind (graph + customer) | from repeat targets | +0.1135 [+0.1059, +0.1213] | gap excludes zero |
+| BasketMind + repeat score minus BasketMind (graph + customer) | from new targets | -0.0113 [-0.0123, -0.0104] | gap excludes zero |
+| BasketMind + repeat score minus Personal frequency | from repeat targets | +0.0034 [+0.0020, +0.0048] | gap excludes zero |
+| BasketMind + repeat score minus Personal frequency | from new targets | +0.0003 [-0.0000, +0.0006] | inconclusive |
+| BasketMind + repeat score minus Personal frequency + CF | from repeat targets | +0.0032 [+0.0018, +0.0045] | gap excludes zero |
+| BasketMind + repeat score minus Personal frequency + CF | from new targets | -0.0007 [-0.0013, -0.0002] | gap excludes zero |
 | Personal frequency + CF minus Item-item CF | from repeat targets | +0.0866 [+0.0790, +0.0943] | gap excludes zero |
 | Personal frequency + CF minus Item-item CF | from new targets | -0.0063 [-0.0072, -0.0055] | gap excludes zero |
 | Personal frequency + CF minus Personal frequency | from repeat targets | +0.0002 [-0.0015, +0.0018] | inconclusive |
