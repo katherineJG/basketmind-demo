@@ -49,6 +49,7 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.ruff.lint.per-file-ignores]
 "src/basketmind/data/pipeline.py" = ["E501"]  # markdown report template lines
 "reports/build_report.py" = ["E501", "E731"]  # HTML template lines and short local lambdas
+"reports/build_addendum.py" = ["E501", "E731"]  # HTML template lines and short local lambdas
 "src/basketmind/evaluation/rigour.py" = ["E501"]  # markdown report template lines
 "src/basketmind/data/cancellation_labels.py" = ["E501"]  # markdown report template lines
 "src/basketmind/evaluation/repeat.py" = ["E501"]  # markdown report template lines

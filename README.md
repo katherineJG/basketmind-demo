@@ -35,7 +35,8 @@ new-items-only setting, are in [`docs/final_comparison.md`](docs/final_compariso
 - **A baseline I left out beats everything.** Ranking a customer's own past items by how often (and how recently) they bought
   them scores 0.224 Recall@10 on test, 55% above item-item CF and 79% above BasketMind. It is the standard baseline for this
   task and I should have included it from the start. The course report, which I submitted before I ran it, still calls
-  item-item CF the strongest baseline; that is no longer true. See [`docs/repeat_purchases.md`](docs/repeat_purchases.md).
+  item-item CF the strongest baseline; that is no longer true. See [`docs/repeat_purchases.md`](docs/repeat_purchases.md) and the
+  [addendum](reports/BasketMind_Report_Addendum.pdf), which lists the statements in the report it corrects.
 - **Adding that same repeat score to BasketMind lifts it from 0.125 to 0.228**, level with the baseline (+0.003 over it). The
   improvement comes from the count term, not the network, and it costs new-item discovery: 98% of the top 10 becomes the
   customer's own history. The API still serves the unchanged model.
@@ -148,7 +149,7 @@ from the GPU run in the last decimal places. I built and ran this on Docker Desk
 | `scripts/` | Command-line entry points for each stage |
 | `tests/` | Unit, integration and model tests (`pytest`) |
 | `docs/` | Architecture, methodology, experiment log, model card, data dictionary and generated reports |
-| `reports/` | The course report (PDF) and the script that builds it from the saved results |
+| `reports/` | The course report (PDF), an addendum that corrects it (`BasketMind_Report_Addendum.pdf`), and the scripts that build them from the saved results |
 | `BASKETMIND master.md` | The engineering blueprint I followed |
 
 ## Documentation
