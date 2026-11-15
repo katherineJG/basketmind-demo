@@ -2,7 +2,10 @@
 
 import math
 
+import numpy as np
 import torch
+
+TOP_STORED = 10  # recommendations kept per example when examples are kept
 
 
 class RankingMetrics:
@@ -12,26 +15,43 @@ class RankingMetrics:
     `exclude` (B, I) bool (e.g. the customer's history) those items cannot be recommended AND are
     removed from the targets, so the metric measures discovery of new items; examples left with no
     target are skipped and counted in `skipped`. Ties are broken by torch.topk order.
+
+    With `keep_examples=True` every evaluated example's own metric values and top-10 list are kept (pass
+    `ids`, one id per row of `scores`) and returned by `per_example()`, for confidence intervals and slices.
     """
 
-    def __init__(self, ks: list[int]):
+    def __init__(self, ks: list[int], keep_examples: bool = False):
         self.ks = sorted(ks)
         self.n = 0
         self.skipped = 0
         names = [f"{m}@{k}" for k in self.ks for m in ("recall", "precision", "ndcg")] + ["mrr"]
         self.sums: dict[str, float] = dict.fromkeys(names, 0.0)  # keys always present (NaN if n == 0)
+        self.keep_examples = keep_examples
+        self._rows: dict[str, list[np.ndarray]] = {name: [] for name in names}
+        self._ids: list[np.ndarray] = []
+        self._top: list[np.ndarray] = []
 
     def _add(self, name: str, value: torch.Tensor) -> None:
         self.sums[name] = self.sums.get(name, 0.0) + float(value.sum())
+        if self.keep_examples:
+            self._rows[name].append(value.detach().cpu().numpy())
 
     def update(
-        self, scores: torch.Tensor, targets: torch.Tensor, exclude: torch.Tensor | None = None
+        self,
+        scores: torch.Tensor,
+        targets: torch.Tensor,
+        exclude: torch.Tensor | None = None,
+        ids: np.ndarray | None = None,
     ) -> None:
+        if self.keep_examples and (ids is None or len(ids) != len(scores)):
+            raise ValueError("keep_examples needs one id per row of scores")
         if exclude is not None:
             scores = scores.masked_fill(exclude, float("-inf"))
             targets = targets & ~exclude
         keep = targets.any(dim=1)
         self.skipped += int((~keep).sum())
+        if self.keep_examples:
+            ids = np.asarray(ids)[keep.cpu().numpy()]
         scores, targets = scores[keep], targets[keep]
         if len(scores) == 0:
             return
@@ -51,6 +71,20 @@ class RankingMetrics:
         rank = (scores > best[:, None]).sum(1) + 1
         self._add("mrr", 1.0 / rank.float())
         self.n += len(scores)
+        if self.keep_examples:
+            self._ids.append(ids)
+            self._top.append(top[:, :TOP_STORED].cpu().numpy())
+
+    def per_example(self) -> dict[str, np.ndarray]:
+        """Each evaluated example's `example_id`, every metric, and its `top` (n, <=10) recommended items."""
+        if not self.keep_examples:
+            raise ValueError("construct RankingMetrics(keep_examples=True) to use per_example()")
+        if not self._ids:
+            return {"example_id": np.zeros(0, dtype=int), **{m: np.zeros(0) for m in self._rows}}
+        out: dict[str, np.ndarray] = {"example_id": np.concatenate(self._ids)}
+        out |= {name: np.concatenate(chunks) for name, chunks in self._rows.items()}
+        out["top"] = np.concatenate(self._top)
+        return out
 
     def compute(self) -> dict[str, float]:
         out = {k: v / self.n if self.n else math.nan for k, v in self.sums.items()}

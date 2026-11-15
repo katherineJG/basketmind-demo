@@ -30,6 +30,17 @@ Recall@5/10/20, Precision@10, NDCG@10 and MRR, ranked over the whole catalogue. 
 purchases allowed) and `exclude_history` (the customer's history items are removed from the candidates and the targets, so
 only discovery counts). Stochastic models run three seeds (42, 43, 44) and are reported as mean ± standard deviation.
 
+## Statistical analysis
+
+Done after model selection and used for nothing but reporting. Per-example test metrics are collected for every model
+(`collect_per_example.py`), averaged over seeds per example, and then bootstrapped by resampling **customers** with all their
+examples, because one customer's examples are correlated (2,000 resamples, percentile 95% intervals; 500 to 1,000 inside slices).
+Paired comparisons bootstrap the per-example difference between two models on the same examples. The intervals cover which
+customers are in the test set; training-seed variation is reported separately as a standard deviation, so a gap smaller than the
+seed spread should still be read with care. p-values are not corrected for multiple comparisons. Slices: customer seen in training,
+earlier-basket count, country, target month and share of the target made of the 100 most popular products. Re-scoring the saved
+checkpoints for this analysis does not touch model selection and does not alter `evaluate_test.py`'s once-only rule.
+
 ## Selection and tuning protocol
 
 1. Hyperparameters for GRU, matrix factorisation and BasketMind were searched with Optuna (TPE), scoring validation
@@ -46,5 +57,5 @@ only discovery counts). Stochastic models run three seeds (42, 43, 44) and are r
 - The quantity head is trained but its metrics (MAE, RMSE, WAPE) are not evaluated.
 - Purchase recency is measured to the target basket's timestamp (predictions are assumed to be made when the customer
   arrives). `recency_reference: none` in `configs/features.yaml` gives a time-blind variant, which is untested.
-- Not yet done: confidence intervals, paired comparisons, cold-start and short-history breakdowns.
+- The reversal head still needs split-boundary-safe labels; the label analysis is in [`cancellation_labels.md`](cancellation_labels.md).
 - GPU runs with the same seed start from identical weights but are not bit-identical (summation order varies, about 1e-6).

@@ -1,5 +1,6 @@
 import math
 
+import numpy as np
 import pytest
 import torch
 
@@ -36,6 +37,53 @@ def test_exclude_removes_items_from_candidates_and_targets():
     r = m.compute()
     assert r["mrr"] == pytest.approx(1 / 4)  # only item 4 left, ranked 4th among 0,2,3,4
     assert r["recall@3"] == 0.0
+
+
+def _three_examples():
+    scores = torch.tensor([[0.9, 0.8, 0.7, 0.6, 0.5], [0.1, 0.2, 0.3, 0.4, 0.5], [0.5, 0.1, 0.4, 0.2, 0.3]])
+    targets = torch.tensor(
+        [
+            [False, True, False, False, True],
+            [True, False, False, False, False],
+            [False, False, False, False, True],
+        ]
+    )
+    return scores, targets
+
+
+def test_per_example_values_average_back_to_the_aggregate_metrics():
+    scores, targets = _three_examples()
+    m = RankingMetrics([3, 5], keep_examples=True)
+    m.update(scores, targets, ids=np.array([10, 11, 12]))
+    per, agg = m.per_example(), m.compute()
+    assert per["example_id"].tolist() == [10, 11, 12]
+    for name in ("recall@3", "recall@5", "precision@3", "ndcg@3", "ndcg@5", "mrr"):
+        assert per[name].mean() == pytest.approx(agg[name]), name
+    assert per["recall@3"][0] == pytest.approx(0.5)  # the hand-computed example from above
+    assert per["top"].shape == (3, 5) and per["top"][0].tolist() == [0, 1, 2, 3, 4]
+
+
+def test_ids_stay_aligned_when_examples_are_skipped():
+    scores, targets = _three_examples()
+    exclude = torch.zeros_like(targets)
+    exclude[1, 0] = True  # example 11's only target is history: it is skipped under exclude_history
+    m = RankingMetrics([3], keep_examples=True)
+    m.update(scores, targets, exclude, ids=np.array([10, 11, 12]))
+    per = m.per_example()
+    assert per["example_id"].tolist() == [10, 12] and m.compute()["n_skipped"] == 1
+    assert len(per["top"]) == len(per["mrr"]) == 2
+    assert per["top"][1].tolist()[:1] == [0]  # example 12's best-scored candidate is item 0
+
+
+def test_per_example_mode_needs_ids_and_is_off_by_default():
+    scores, targets = _three_examples()
+    with pytest.raises(ValueError, match="one id per row"):
+        RankingMetrics([3], keep_examples=True).update(scores, targets)
+    plain = RankingMetrics([3])
+    plain.update(scores, targets)  # the default path needs no ids and keeps nothing
+    with pytest.raises(ValueError, match="keep_examples"):
+        plain.per_example()
+    assert plain._rows["mrr"] == []
 
 
 def test_examples_without_targets_are_skipped_and_counted():

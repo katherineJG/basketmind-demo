@@ -39,8 +39,11 @@ Full tables: [`final_comparison.md`](final_comparison.md).
 
 - One retailer, two years. The test period includes the pre-Christmas months.
 - Only 70.2% of test target items exist in the training catalogue; new products cannot be recommended.
-- Cold-start and short-history customers are not yet analysed (35% of test customers have no training baskets).
-- Three seeds, no confidence intervals or paired tests yet; close comparisons are inconclusive.
+- Weak on short histories: with 1 to 10 earlier baskets item-item CF beats BasketMind by 3 to 6 points of Recall@10; BasketMind is
+  level with CF only at 11 or more baskets. On cold-start customers it scores 0.115 against 0.173 for CF.
+- Narrow recommendations: only 15.2% of the catalogue is ever recommended (36.3% for the GRU, 43.3% for item-item CF).
+- Three seeds. Customer-level 95% intervals and paired tests are in [`evaluation_rigour.md`](evaluation_rigour.md): the tuned GRU leads
+  BasketMind on Recall@10 by 0.0051 (CI [0.0016, 0.0088]), though BasketMind's own seed-to-seed spread (0.0044) is similar in size.
 - Tuning budgets were unequal across models, and the quantity head is trained but not evaluated.
 - Scores are offline. Real-world effect would need an online test.
 

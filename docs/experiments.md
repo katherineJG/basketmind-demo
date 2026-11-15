@@ -45,7 +45,34 @@ A separate output item table (plus the graph vectors) scored lower than sharing 
 Graph + customer was selected on validation. Test, once per run: Recall@10 0.125 ± 0.004, against item-item CF 0.145 and the
 tuned GRU 0.131. See [`final_comparison.md`](final_comparison.md).
 
+## 7. Evaluation rigour (analysis of the finished models)
+
+Per-example test results for every model, with customer-level bootstrap intervals, paired comparisons and slices. Full
+tables: [`evaluation_rigour.md`](evaluation_rigour.md). The baselines were refitted to get per-example outputs and reproduced the
+reported numbers to four decimals; the BasketMind checkpoints are the same ones scored before.
+
+- **Gaps that hold up.** Graph + customer beats the full hybrid and matrix factorisation (about +0.017 Recall@10, interval
+  excludes zero). The tuned GRU beats BasketMind on Recall@10 (-0.0051, 95% CI [-0.0088, -0.0016]), NDCG@10 and MRR; item-item CF
+  beats the GRU on Recall@10 and NDCG@10 but ties it on MRR (-0.0014, CI [-0.011, +0.008]).
+- **The overall ranking hides a crossover by history length.** With 1 to 10 earlier baskets item-item CF beats both neural
+  models by 2 to 7 points of Recall@10. With 11 or more (46% of test examples) the GRU beats CF (+0.0146 [+0.0052, +0.0240]) and
+  BasketMind is level with it (+0.0055, inconclusive).
+- **Cold start (customers with no training basket, 21% of test examples).** CF leads (0.173 against 0.115 BasketMind and
+  0.107 GRU); BasketMind beats the GRU here (+0.0075 [+0.0011, +0.0139]); matrix factorisation collapses to 0.034.
+- **Drift.** Most models score lower in October and November than in July to September (item-item CF 0.125 and 0.137 against
+  about 0.16); the full hybrid is the exception.
+- **Narrow recommendations.** BasketMind (graph + customer) ever recommends only 15.2% of the catalogue, against 36.3% for the GRU
+  and 43.3% for item-item CF.
+
+## 8. Cancellation labels
+
+A 30-day window label ("the customer cancels this product within 30 days") flags 1.83% of purchase lines and is 85%
+attributable to a real preceding purchase; a 90-day label is too noisy (68%). 91% of cancellations link to an earlier purchase,
+and the 9% that do not are concentrated in the first three months of the data. Verdict: usable as a weak label with split-boundary
+cutting, not yet built. See [`cancellation_labels.md`](cancellation_labels.md).
+
 ## Open questions
 
-Why the Transformer branch does not help; whether a repeat-purchase path closes the gap (item-item CF also leads on new
-items, so probably not entirely); how the scores break down for cold-start and short-history customers.
+Why the Transformer branch does not help (and why the GRU overtakes item-item CF only with long histories); whether a
+repeat-purchase path closes the gap (item-item CF also leads on new items, so probably not entirely); whether the narrow
+coverage of BasketMind's recommendations can be widened without losing accuracy.

@@ -41,7 +41,7 @@ The full write-up is the course report: [`reports/BasketMind_Final_Project_Repor
 - **Test split touched once.** Selection, tuning and early stopping use validation only. `scripts/evaluate_test.py`
   refuses to score a run on test twice.
 - **Everything is reproducible and tested.** Seeded runs, YAML configs, MLflow tracking, Optuna searches, and a
-  pytest suite (110 tests) covering the data pipeline, metrics, model components, training and evaluation tooling.
+  pytest suite covering the data pipeline, metrics, model components, training and evaluation tooling.
 - **AMD GPU first.** Developed on an AMD Radeon RX 7900 GRE with PyTorch on ROCm for Windows, with CPU fallback.
 
 ## Setup
@@ -79,6 +79,9 @@ python scripts\train.py --name abl_graph_customer --branches graph,customer --tu
 python scripts\evaluate_test.py --runs abl_graph_customer:42,abl_graph_customer:43,abl_graph_customer:44
 python scripts\report_final.py --variants abl_full,abl_graph_customer     # docs/final_comparison.md
 python reports\build_report.py                             # rebuilds the PDF (needs Google Chrome)
+python scripts\collect_per_example.py                      # per-example test results (refits the baselines, ~15 min)
+python scripts\analyse_results.py                          # docs/evaluation_rigour.md: intervals, paired tests, slices
+python scripts\analyse_cancellations.py                    # docs/cancellation_labels.md
 ```
 
 ## Repository map
@@ -97,13 +100,16 @@ python reports\build_report.py                             # rebuilds the PDF (n
 
 [Architecture](docs/architecture.md) · [Research methodology](docs/research_methodology.md) ·
 [Experiments](docs/experiments.md) · [Model card](docs/model_card.md) · [Data dictionary](docs/data_dictionary.md) ·
-[Data quality report](docs/data_quality_report.md) · [API reference (planned)](docs/api_reference.md)
+[Data quality report](docs/data_quality_report.md) · [Evaluation rigour](docs/evaluation_rigour.md) ·
+[Cancellation labels](docs/cancellation_labels.md) · [API reference (planned)](docs/api_reference.md)
 
 ## Limitations and what is next
 
-One retailer over two years; only 70% of test target items exist in the training catalogue; cold-start customers are
-not yet broken out; three seeds and no confidence intervals yet. Next: statistical comparisons and cold-start slices,
-a repeat-purchase path for BasketMind, then the API, dashboard and Docker deployment from the blueprint.
+One retailer over two years; only 70% of test target items exist in the training catalogue; three seeds per model. The
+[evaluation rigour report](docs/evaluation_rigour.md) adds customer-level confidence intervals, paired comparisons and slices. Its
+main finding: item-item CF's overall lead comes from customers with short histories, and the neural models only overtake it with
+11 or more earlier baskets. [Cancellation labels](docs/cancellation_labels.md) look usable as a weak 30-day label, but no reversal
+head is built yet. Next: a repeat-purchase path for BasketMind, then the API, dashboard and Docker deployment from the blueprint.
 
 ## Licence
 
