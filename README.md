@@ -95,6 +95,9 @@ python scripts\analyse_cancellations.py                    # docs/cancellation_l
 
 ## Running the API
 
+The API needs `data\processed` and a trained BasketMind run, so do the first steps of "Reproducing the results" first (through
+`evaluate_test.py`). Without a checkpoint it still starts, but `/health` reports `degraded` and the other routes answer 503.
+
 ```powershell
 python scripts\export_model.py                # copies the best-validation BasketMind checkpoint to artifacts\
 python -m uvicorn basketmind_api.main:app     # then open http://127.0.0.1:8000/docs
