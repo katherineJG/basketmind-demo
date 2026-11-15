@@ -54,7 +54,12 @@ related-product, explanation and overview questions. It rebuilds the feature sto
 snapshot as of the end of the data, and reuses `training.data.build_batch` and `features.build.customer_feature_rows`, so there is
 a single implementation of preprocessing. `api/basketmind_api` wraps it in FastAPI routes with Pydantic response models
 ([API reference](api_reference.md)). `scripts/export_model.py` copies the best-validation checkpoint to `artifacts/` with a
-metadata file; the API reads both.
+metadata file; the API reads both. `scripts/export_analytics.py` writes the cancellation and performance summaries the API serves.
+
+The Streamlit dashboard (`dashboard/`) sits on top of the API and imports nothing from `basketmind`: all data arrives over HTTP
+through `dashboard/utils/api_client.py`, which turns every failure into a message rather than a stack trace. Pages are separated into
+historical descriptions (customers, products, cancellations, overview) and model output (predictions, performance), each with its
+own banner. Colours come from the project design system; charts use one hue plus grey and always offer a table view.
 
 ## Checkpoints
 

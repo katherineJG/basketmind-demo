@@ -7,8 +7,8 @@ co-purchase graph, and a customer-context network. The branches are fused into o
 head predicts quantities.
 
 > **Status:** the data pipeline, four baselines, the hybrid model, tuning, ablations, one-time test evaluation, the
-> statistical analysis, the course report and the REST API are done. The dashboard and Docker deployment from the
-> blueprint are **not built yet**. This is an educational research prototype, not a production system.
+> statistical analysis, the course report, the REST API and the Streamlit dashboard are done. Docker deployment from the
+> blueprint is **not built yet**. This is an educational research prototype, not a production system.
 
 ## What I found
 
@@ -94,12 +94,28 @@ python -m uvicorn basketmind_api.main:app     # then open http://127.0.0.1:8000/
 It serves next-basket recommendations, customer and product views and evidence-based explanations from the real model
 (about 70 ms per recommendation after start-up). See the [API reference](docs/api_reference.md).
 
+## Running the dashboard
+
+```powershell
+python scripts\export_analytics.py            # once: writes the cancellation and model-performance JSON the API serves
+python -m uvicorn basketmind_api.main:app     # terminal 1
+python -m streamlit run dashboard\app.py      # terminal 2, then open http://localhost:8501
+```
+
+Six pages: executive overview, customer intelligence, next basket predictions, product intelligence, cancellation
+intelligence and model performance. The dashboard only calls the API (set `BASKETMIND_API_URL`, or use the sidebar box,
+if it is not on `127.0.0.1:8000`). Pages that describe history and pages that show model predictions carry different
+banners, every chart has a table view, and the performance page shows the test results with their confidence intervals,
+including where BasketMind loses to the baselines.
+
 ## Repository map
 
 | Path | Contents |
 |---|---|
 | `src/basketmind/` | `data`, `features`, `sequences`, `graph`, `models`, `baselines`, `training`, `evaluation`, `utils` |
 | `configs/` | YAML configuration for data, features, graph, model, training, baselines and evaluation |
+| `api/` | The FastAPI service (routes, schemas, dependencies) |
+| `dashboard/` | The Streamlit dashboard: `app.py`, six pages, API client and theme |
 | `scripts/` | Command-line entry points for each stage |
 | `tests/` | Unit, integration and model tests (`pytest`) |
 | `docs/` | Architecture, methodology, experiment log, model card, data dictionary and generated reports |
@@ -119,7 +135,7 @@ One retailer over two years; only 70% of test target items exist in the training
 [evaluation rigour report](docs/evaluation_rigour.md) adds customer-level confidence intervals, paired comparisons and slices. Its
 main finding: item-item CF's overall lead comes from customers with short histories, and the neural models only overtake it with
 11 or more earlier baskets. [Cancellation labels](docs/cancellation_labels.md) look usable as a weak 30-day label, but no reversal
-head is built yet. Next: the Streamlit dashboard and Docker deployment from the blueprint, and a repeat-purchase path for BasketMind.
+head is built yet. Next: the Docker deployment from the blueprint, and a repeat-purchase path for BasketMind.
 
 ## Licence
 
