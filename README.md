@@ -6,6 +6,17 @@ course. The model combines a causal Transformer over a customer's purchase histo
 co-purchase graph, and a customer-context network. The branches are fused into one score per product, and a second
 head predicts quantities.
 
+## Live demo
+
+**[basketmind-demo-v4.streamlit.app](https://basketmind-demo-v4.streamlit.app)** is an interactive dashboard over the real data
+and the real model's outputs: customer histories, next-basket recommendations with the evidence behind each one, product
+relationships, cancellation analysis and the full model comparison, including where BasketMind loses to simpler baselines.
+
+It runs on **precomputed results**: the model's top 100 products for every customer were computed ahead of time (the exporter runs
+the real model, and a test checks the served answers are identical to the live model's), so the hosted app needs no GPU and no
+PyTorch. Explanations are available for products in a customer's top 100. The app sleeps when idle, so the first visit after a quiet
+spell can take a minute to wake up.
+
 > **Status:** the data pipeline, four baselines, the hybrid model, tuning, ablations, one-time test evaluation, the
 > statistical analysis, the course report, the REST API, the Streamlit dashboard and the Docker deployment are done. This is an educational research prototype, not a production system.
 
