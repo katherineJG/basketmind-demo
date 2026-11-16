@@ -54,7 +54,11 @@ related-product, explanation and overview questions. It rebuilds the feature sto
 snapshot as of the end of the data, and reuses `training.data.build_batch` and `features.build.customer_feature_rows`, so there is
 a single implementation of preprocessing. `api/basketmind_api` wraps it in FastAPI routes with Pydantic response models
 ([API reference](api_reference.md)). `scripts/export_model.py` copies the best-validation checkpoint to `artifacts/` with a
-metadata file; the API reads both. `scripts/export_analytics.py` writes the cancellation and performance summaries the API serves.
+metadata file; the API reads both. The graph branch's output (one vector per product) depends only on the weights and the
+graph snapshot, so the service computes it once at start-up and passes it to `BasketMindModel.forward(graph_vectors=...)`
+instead of re-running the graph encoder over every edge for each request. Outputs are identical to the uncached path (checked
+on the real model: same top-10 lists, score difference 0), a recommendation drops from about 2.6 s to 4 ms on CPU, and
+concurrent requests no longer multiply memory use. A graph passed in explicitly (another point in time) is still encoded on demand. `scripts/export_analytics.py` writes the cancellation and performance summaries the API serves.
 
 The Streamlit dashboard (`dashboard/`) sits on top of the API and imports nothing from `basketmind`: all data arrives over HTTP
 through `dashboard/utils/api_client.py`, which turns every failure into a message rather than a stack trace. Pages are separated into

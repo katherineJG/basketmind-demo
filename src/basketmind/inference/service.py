@@ -89,6 +89,11 @@ class BasketMindService:
         self.hist_index = customer_history_index(baskets)
         self.item_index = {s: i for i, s in enumerate(task.items)}
         self._graph_gpu = graph.to(device)
+        # The graph encoder is the costly part of a forward pass (it touches every edge) and does not
+        # depend on the customer, so it runs once here instead of on every request.
+        self._graph_vectors = (
+            self.model.encode_graph(self._graph_gpu) if self.model.branches["graph"] else None
+        )
         n = task.n_items
         ei, w = graph.edge_index.numpy(), graph.edge_weight.numpy()
         self.adjacency = sp.csr_matrix((w, (ei[0], ei[1])), shape=(n, n))
@@ -171,10 +176,12 @@ class BasketMindService:
     def _forward(
         self, batch: Batch, graph: GraphSnapshot | None = None, items: np.ndarray | None = None
     ) -> dict:
+        # A graph passed in (another point in time) is encoded on the spot; the default one is cached.
         g = graph.to(self.device) if graph is not None else self._graph_gpu
+        cached = self._graph_vectors if graph is None else None
         quantity_items = None if items is None else torch.as_tensor(items, device=self.device)[None, :]
         with torch.no_grad():
-            return self.model(batch, g, quantity_items)
+            return self.model(batch, g, quantity_items, graph_vectors=cached)
 
     def score_customer(
         self, customer_id: str, as_of: pd.Timestamp | None = None, graph: GraphSnapshot | None = None

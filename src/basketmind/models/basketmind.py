@@ -81,11 +81,21 @@ class BasketMindModel(nn.Module):
             PairHead(d, cfg["heads"]["quantity_hidden"]) if cfg["heads"]["reversal_enabled"] else None
         )
 
+    @torch.no_grad()
+    def encode_graph(self, graph: GraphSnapshot) -> torch.Tensor:
+        """Graph-encoded item vectors. They depend only on the weights and the graph, never on a customer,
+        so a server can compute them once per graph and pass them to `forward(graph_vectors=...)`.
+        Call in eval mode."""
+        if self.training:
+            raise RuntimeError("encode_graph caches eval-mode vectors; call model.eval() first")
+        return self.graph_encoder(self.item_emb.weight, graph)
+
     def forward(
         self,
         batch: Batch,
         graph: GraphSnapshot | None = None,
         quantity_items: torch.Tensor | None = None,
+        graph_vectors: torch.Tensor | None = None,
     ) -> dict[str, torch.Tensor]:
         counts = batch.basket_counts
         parts: list[torch.Tensor] = []
@@ -96,9 +106,11 @@ class BasketMindModel(nn.Module):
             )
             parts.append(self.temporal(basket_vecs, batch.basket_feats, counts))
         if self.branches["graph"]:
-            if graph is None:
-                raise ValueError("the graph branch is enabled, so a GraphSnapshot is required")
-            item_vectors = self.graph_encoder(self.item_emb.weight, graph)
+            if graph_vectors is None:
+                if graph is None:
+                    raise ValueError("the graph branch is enabled, so a GraphSnapshot is required")
+                graph_vectors = self.graph_encoder(self.item_emb.weight, graph)
+            item_vectors = graph_vectors
             graph_baskets = F.embedding_bag(batch.item_ids, item_vectors, batch.item_offsets, mode="mean")
             padded, _ = pad_flat(graph_baskets, counts)
             parts.append(padded.sum(1) / counts[:, None])  # mean over real baskets (padding rows are zero)

@@ -107,7 +107,8 @@ python -m uvicorn basketmind_api.main:app     # then open http://127.0.0.1:8000/
 ```
 
 It serves next-basket recommendations, customer and product views and evidence-based explanations from the real model
-(about 70 ms per recommendation after start-up). See the [API reference](docs/api_reference.md).
+(a few milliseconds per recommendation on CPU after start-up, which computes the graph-encoded product vectors once; start-up
+takes about 30 seconds and briefly needs about 4 GB of memory). See the [API reference](docs/api_reference.md).
 
 ## Running the dashboard
 
