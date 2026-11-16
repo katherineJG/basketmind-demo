@@ -17,7 +17,6 @@ artifacts/checkpoints/*
 artifacts/mappings/*
 artifacts/model_metadata/*
 artifacts/analytics/*
-artifacts/demo/*
 experiments/*
 mlruns/
 mlartifacts/
@@ -25,3 +24,5 @@ mlartifacts/
 *.pt
 *.parquet
 !**/.gitkeep
+# the public demo's bundle: public data and model outputs only
+!artifacts/demo/baskets.parquet

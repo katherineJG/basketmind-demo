@@ -1,0 +1,12 @@
+# Dependencies of the public demo only (Streamlit Community Cloud installs this file).
+# It runs on precomputed results, so it needs neither torch nor the training stack: see pyproject.toml for those.
+streamlit>=1.40
+plotly>=5.24
+pandas>=2.2
+numpy>=1.26
+scipy>=1.13
+pyarrow>=16
+httpx>=0.27
+fastapi>=0.110
+pydantic>=2
+pyyaml>=6
