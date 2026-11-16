@@ -188,4 +188,6 @@ is new-item discovery, where item-item CF still leads.
 
 ## Licence
 
-No licence has been chosen yet, so all rights are reserved by default. The Online Retail II data set is CC BY 4.0.
+The code is released under the [MIT licence](LICENSE). The Online Retail II data set is not mine: it is CC BY 4.0, and the
+precomputed demo bundle in `artifacts/demo/` is derived from it, so please keep its attribution
+(https://archive.ics.uci.edu/dataset/502/online+retail+ii) if you reuse it.
