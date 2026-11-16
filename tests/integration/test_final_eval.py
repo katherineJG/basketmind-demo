@@ -7,6 +7,7 @@ from basketmind.evaluation.final_report import (
     aggregate,
     baseline_rows,
     load_neural,
+    personal_frequency_rows,
     render,
     select_variant,
 )
@@ -109,3 +110,43 @@ def test_report_lists_baselines_and_marks_the_selected_variant(tmp_path):
     md = render(agg, baseline_rows(csv), select_variant(agg, ["A", "B"]))
     assert "B **(selected)**" in md and "A **(selected)**" not in md and "| popularity |" in md
     assert "## Test, policy `full`" in md and "chosen as the variant with the best mean" in md
+
+
+def test_personal_frequency_rows_join_the_comparison_with_the_example_counts_of_item_item_cf(tmp_path):
+    write_run(tmp_path, "A", 1, 0.1, 0.09)
+    agg = aggregate(load_neural(tmp_path, ["A"]))
+    cols = ["recall@5", "recall@10", "recall@20", "precision@10", "ndcg@10", "mrr"]
+    n = {
+        ("validation", "full"): 7,
+        ("validation", "exclude_history"): 5,
+        ("test", "full"): 9,
+        ("test", "exclude_history"): 6,
+    }
+    rows = [
+        {"model": "item_item_cf", "split": s, "policy": p, "n_evaluated": n[(s, p)]}
+        | dict.fromkeys(cols, 0.1)
+        | {c + "_std": 0.0 for c in cols}
+        for s, p in n
+    ]
+    csv = tmp_path / "summary.csv"
+    pd.DataFrame(rows).to_csv(csv, index=False)
+    metrics = dict.fromkeys(cols, 0.3)
+    saved = {
+        "personal_frequency": {
+            "validation": {p: metrics | {"n_evaluated": 99} for p in ("full", "exclude_history")},
+            "test_means": {p: metrics for p in ("full", "exclude_history")},
+        }
+    }
+    path = tmp_path / "repeat_baselines.json"
+    path.write_text(json.dumps(saved))
+    base = baseline_rows(csv)
+    pf = personal_frequency_rows(path, base)
+    assert len(pf) == 4 and set(pf["seeds"]) == {1}
+    assert pf.set_index(["split", "policy"]).loc[("test", "full"), "n"] == 9  # copied from item-item CF
+    assert (
+        pf.set_index(["split", "policy"]).loc[("validation", "full"), "n"] == 99
+    )  # its own validation count
+    md = render(agg, pd.concat([base, pf], ignore_index=True), "A")
+    assert "personal_frequency *(added after the course report)*" in md
+    assert "this table is the corrected comparison" in md
+    assert "corrected comparison" not in render(agg, base, "A")  # no note when the baseline is absent
