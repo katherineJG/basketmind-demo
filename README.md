@@ -16,9 +16,9 @@ only and evaluating the test split once per run. **BasketMind did not beat the s
 
 | Test, repeat purchases allowed | Recall@10 | NDCG@10 | MRR |
 |---|---:|---:|---:|
-| BasketMind (graph + customer) + repeat score (added after the report) | **0.228** | n/a | n/a |
-| Personal frequency (added after the report, see below) | 0.224 | **0.293** | **0.470** |
-| Personal frequency + item-item CF (added after the report) | 0.225 | **0.293** | 0.462 |
+| BasketMind (graph + customer) + repeat score (added later, see below) | **0.228** | n/a | n/a |
+| Personal frequency (added later, see below) | 0.224 | **0.293** | **0.470** |
+| Personal frequency + item-item CF (added later) | 0.225 | **0.293** | 0.462 |
 | Item-item collaborative filtering | 0.145 | 0.188 | 0.326 |
 | Tuned GRU | 0.131 ± 0.001 | 0.175 | 0.325 |
 | **BasketMind (graph + customer), selected on validation** | 0.125 ± 0.004 | 0.164 | 0.314 |
@@ -34,14 +34,15 @@ new-items-only setting, are in [`docs/final_comparison.md`](docs/final_compariso
 - Repeat purchases carry most of the accuracy: every personalised model loses 57-61% of its score when only new items count.
 - **A baseline I left out beats everything.** Ranking a customer's own past items by how often (and how recently) they bought
   them scores 0.224 Recall@10 on test, 55% above item-item CF and 79% above BasketMind. It is the standard baseline for this
-  task and I should have included it from the start. The course report, which I submitted before I ran it, still calls
-  item-item CF the strongest baseline; that is no longer true. See [`docs/repeat_purchases.md`](docs/repeat_purchases.md) and the
-  [addendum](reports/BasketMind_Report_Addendum.pdf), which lists the statements in the report it corrects.
+  task and I should have included it from the start. The report I submitted for my course, written before I ran it, called
+  item-item CF the strongest baseline; that was wrong, and I corrected it in an addendum. See
+  [`docs/repeat_purchases.md`](docs/repeat_purchases.md).
 - **Adding that same repeat score to BasketMind lifts it from 0.125 to 0.228**, level with the baseline (+0.003 over it). The
   improvement comes from the count term, not the network, and it costs new-item discovery: 98% of the top 10 becomes the
   customer's own history. The API still serves the unchanged model.
 
-The full write-up is the course report: [`reports/BasketMind_Final_Project_Report.pdf`](reports/BasketMind_Final_Project_Report.pdf).
+The experiment log is [`docs/experiments.md`](docs/experiments.md) and the model card is [`docs/model_card.md`](docs/model_card.md).
+The report I wrote for my course is not part of this repository.
 
 ## How it is built
 
@@ -88,7 +89,6 @@ python scripts\tune_neural.py --trials 24                  # BasketMind settings
 python scripts\train.py --name abl_graph_customer --branches graph,customer --tuned --no-test --seed 42
 python scripts\evaluate_test.py --runs abl_graph_customer:42,abl_graph_customer:43,abl_graph_customer:44
 python scripts\report_final.py --variants abl_full,abl_graph_customer     # docs/final_comparison.md
-python reports\build_report.py                             # rebuilds the PDF (needs Google Chrome)
 python scripts\collect_per_example.py                      # per-example test results (refits the baselines, ~15 min)
 python scripts\analyse_results.py                          # docs/evaluation_rigour.md: intervals, paired tests, slices
 python scripts\analyse_cancellations.py                    # docs/cancellation_labels.md
@@ -166,8 +166,7 @@ from the GPU run in the last decimal places. I built and ran this on Docker Desk
 | `scripts/` | Command-line entry points for each stage |
 | `tests/` | Unit, integration and model tests (`pytest`) |
 | `docs/` | Architecture, methodology, experiment log, model card, data dictionary and generated reports |
-| `reports/` | The course report (PDF), an addendum that corrects it (`BasketMind_Report_Addendum.pdf`), and the scripts that build them from the saved results |
-| `BASKETMIND master.md` | The engineering blueprint I followed |
+| `artifacts/demo/` | The precomputed bundle behind the public demo (about 21 MB, public data and model outputs only) |
 
 ## Documentation
 

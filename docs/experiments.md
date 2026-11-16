@@ -20,7 +20,7 @@ Popularity, item-item CF, matrix factorisation and a GRU on the same catalogue, 
 - Default settings (learning rate 0.0003): validation 0.056, test 0.047, equal to popularity.
 - History-swap diagnostic (replace each customer's history with another's): the model lost only 7% of its score, so it was
   largely ignoring history. With the learning rate raised to 0.003 (validation 0.091) it lost 53%, which ruled out a
-  wiring bug and pointed at training. Numbers are in `reports/data/history_swap.json`.
+  wiring bug and pointed at training. The diagnostic's saved numbers are not included in this repository.
 - Optuna, 24 trials (15 finished, 9 pruned): best 0.101. The learning rate stopped mattering inside the range searched;
   dropout hurt (rank correlation -0.68).
 
