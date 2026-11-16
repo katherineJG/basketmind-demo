@@ -105,10 +105,32 @@ baselines tuned on validation and evaluated on test once each.
   baseline" (README, final comparison, course report) was true only of the set I had run. The earlier per-slice finding stands as a
   statement about CF versus the neural models, not about the best achievable score.
 
+## 10. The quantity head
+
+Full tables: [`quantity_head.md`](quantity_head.md). The head predicts the units of a product a customer buys, given that they
+buy it. I scored it on every catalogue product in the real target basket (137,374 test pairs), in units, for the three saved
+seeds of the selected variant, against three baselines fitted on training baskets only. Validation first, then test once;
+nothing was tuned or selected on either.
+
+- **It learned something beyond the product.** Test MAE is 7.92 units [7.01, 9.01] against 9.70 [8.55, 11.11] for each product's
+  median quantity, and the paired difference excludes zero (-1.78 [-2.29, -1.35]).
+- **It does not beat repeating the customer's last quantity.** That baseline has MAE 7.05 [6.19, 8.06] and WAPE 0.525 against
+  0.590; the head is worse by +0.88 [+0.58, +1.19] units. The gap is on products the customer bought before (9.33 against 7.21);
+  on products new to the customer the head is slightly closer than the product median (6.18 against 6.84), which I did not test
+  pairwise.
+- **RMSE does not separate them.** On validation the head had the lower RMSE (41.5 against 51.3); on test the last-quantity baseline
+  has the lower one (35.5 against 37.5). The intervals overlap on both. Quantities are heavy-tailed (median 6, maximum 4,800), so
+  RMSE is driven by a handful of very large orders; MAE and WAPE are the numbers I would rely on.
+- **Why, I have not checked.** In the selected variant the Transformer (history) branch is off, so the head knows a customer only
+  through their id, country and six summary features (one is their average quantity). It has no "last time they bought three of
+  these" signal for a specific product. That is a plausible reason, not a tested one, and giving it that signal is the obvious
+  thing to try.
+
 ## Open questions
 
 Why the Transformer branch does not help (and why the GRU overtakes item-item CF only with long histories); whether a
 repeat score *learned* inside the network (rather than added afterwards) would beat the +0.003 the logits add over counting,
 which the evidence so far does not support; whether anything beats item-item CF on genuinely new items, where BasketMind
 (0.049) and the GRU (0.052) both trail it (0.061); whether the narrow coverage of BasketMind's recommendations can be widened
-without losing accuracy. The repeat score is analysis only: the API still serves the unchanged BasketMind model.
+without losing accuracy; whether feeding the quantity head the customer's last quantity of a product lets it beat that
+baseline. The repeat score is analysis only: the API still serves the unchanged BasketMind model.

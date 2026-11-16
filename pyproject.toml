@@ -53,4 +53,5 @@ select = ["E", "F", "I", "UP", "B"]
 "src/basketmind/evaluation/rigour.py" = ["E501"]  # markdown report template lines
 "src/basketmind/data/cancellation_labels.py" = ["E501"]  # markdown report template lines
 "src/basketmind/evaluation/repeat.py" = ["E501"]  # markdown report template lines
+"src/basketmind/evaluation/quantity.py" = ["E501"]  # markdown report template lines
 "dashboard/**" = ["E501"]  # user-facing text strings

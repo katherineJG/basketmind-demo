@@ -54,7 +54,8 @@ checkpoints for this analysis does not touch model selection and does not alter 
 - A weighted GraphSAGE layer replaces PyG's `SAGEConv`, because the stock layer ignores edge weights.
 - The GRU baseline loops over `GRUCell` because `nn.GRU`'s backward pass fails on ROCm for Windows.
 - The cancellation/reversal head is not trained: cancellation labels were not validated.
-- The quantity head is trained but its metrics (MAE, RMSE, WAPE) are not evaluated.
+- The quantity head is evaluated in [`quantity_head.md`](quantity_head.md) (MAE, RMSE, WAPE against three baselines, validation
+  then test once). It beats a per-product median but not the customer's own last quantity.
 - Purchase recency is measured to the target basket's timestamp (predictions are assumed to be made when the customer
   arrives). `recency_reference: none` in `configs/features.yaml` gives a time-blind variant, which is untested.
 - The reversal head still needs split-boundary-safe labels; the label analysis is in [`cancellation_labels.md`](cancellation_labels.md).

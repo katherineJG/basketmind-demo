@@ -46,8 +46,10 @@ served model; see [repeat purchases](repeat_purchases.md).
   weighted training loss makes them uncalibrated, so the API never presents them as chances.
 - **`exclude_history=true`** removes products the customer has already bought, which tests discovery. Products with no remaining
   candidate are omitted, so the list can be shorter than `k`.
-- **`predicted_quantity`** is the quantity head's estimate of units if the customer buys the product. It has not been evaluated
-  (see the model card), so treat it as indicative.
+- **`predicted_quantity`** is the quantity head's estimate of units if the customer buys the product. On the test split its
+  error is about 7.9 units on average (the median real quantity is 6), better than guessing each product's median (9.7) but
+  worse than repeating the customer's last quantity of that product (7.1). See [quantity head](quantity_head.md). Treat it as
+  indicative, and expect it to be least reliable for products the customer has bought before.
 - **Explanations are evidence from the data, not from inside the network:** whether and how often the customer bought the product,
   the PPMI links between it and products in the customer's history, its rank in the model's scores for this customer, and its overall
   popularity rank. The response says so in its `note`.

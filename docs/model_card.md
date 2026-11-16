@@ -52,7 +52,9 @@ Full tables: [`final_comparison.md`](final_comparison.md).
 - Narrow recommendations: only 15.2% of the catalogue is ever recommended (36.3% for the GRU, 43.3% for item-item CF).
 - Three seeds. Customer-level 95% intervals and paired tests are in [`evaluation_rigour.md`](evaluation_rigour.md): the tuned GRU leads
   BasketMind on Recall@10 by 0.0051 (CI [0.0016, 0.0088]), though BasketMind's own seed-to-seed spread (0.0044) is similar in size.
-- Tuning budgets were unequal across models, and the quantity head is trained but not evaluated.
+- Tuning budgets were unequal across models.
+- The quantity head (how many units, given a purchase) is evaluated in [`quantity_head.md`](quantity_head.md). Test MAE is 7.9 units
+  against 9.7 for a per-product median, but 7.1 for simply repeating the customer's last quantity, which it does not beat.
 - Scores are offline. Real-world effect would need an online test.
 
 ## Ethical considerations

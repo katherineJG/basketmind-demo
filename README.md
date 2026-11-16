@@ -92,6 +92,8 @@ python reports\build_report.py                             # rebuilds the PDF (n
 python scripts\collect_per_example.py                      # per-example test results (refits the baselines, ~15 min)
 python scripts\analyse_results.py                          # docs/evaluation_rigour.md: intervals, paired tests, slices
 python scripts\analyse_cancellations.py                    # docs/cancellation_labels.md
+python scripts\evaluate_quantity.py --split validation     # quantity head and baselines (then --split test, once)
+python scripts\analyse_quantity.py                         # docs/quantity_head.md
 ```
 
 ## Running the API
@@ -157,7 +159,8 @@ from the GPU run in the last decimal places. I built and ran this on Docker Desk
 [Architecture](docs/architecture.md) · [Research methodology](docs/research_methodology.md) ·
 [Experiments](docs/experiments.md) · [Model card](docs/model_card.md) · [Data dictionary](docs/data_dictionary.md) ·
 [Data quality report](docs/data_quality_report.md) · [Evaluation rigour](docs/evaluation_rigour.md) ·
-[Cancellation labels](docs/cancellation_labels.md) · [API reference](docs/api_reference.md)
+[Cancellation labels](docs/cancellation_labels.md) · [Repeat purchases](docs/repeat_purchases.md) ·
+[Quantity head](docs/quantity_head.md) · [API reference](docs/api_reference.md)
 
 ## Limitations and what is next
 
