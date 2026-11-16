@@ -18,7 +18,8 @@ def pick_customer(key: str) -> str | None:
         st.warning("No customer matches that search.")
         return None
     labels = {
-        c["customer_id"]: f"{c['customer_id']} ({c['n_baskets']} baskets, {c['country']})" for c in page["items"]
+        c["customer_id"]: f"{c['customer_id']} ({c['n_baskets']} baskets, {c['country']})"
+        for c in page["items"]
     }
     st.caption(f"Showing {len(labels)} of {page['total']:,} matching customers.")
     return st.selectbox("Customer", list(labels), format_func=labels.get, key=f"{key}_pick")

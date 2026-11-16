@@ -2,10 +2,10 @@
 
 from fastapi import HTTPException, Request
 
-from basketmind.inference import BasketMindService
+from basketmind.inference import DataService
 
 
-def get_service(request: Request) -> BasketMindService:
+def get_service(request: Request) -> DataService:
     service = getattr(request.app.state, "service", None)
     if service is None:
         reason = getattr(request.app.state, "load_error", "the model has not been loaded")

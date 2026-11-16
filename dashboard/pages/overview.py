@@ -28,7 +28,9 @@ left, right = st.columns(2)
 with left:
     st.subheader("Most-bought products")
     top = pd.DataFrame(o["top_products"])
-    fig = px.bar(top.iloc[::-1], x="baskets", y="description", orientation="h", color_discrete_sequence=[BLUE])
+    fig = px.bar(
+        top.iloc[::-1], x="baskets", y="description", orientation="h", color_discrete_sequence=[BLUE]
+    )
     st.plotly_chart(style_fig(fig, height=380), width="stretch")
     with st.expander("Table view"):
         st.dataframe(top, hide_index=True, width="stretch")

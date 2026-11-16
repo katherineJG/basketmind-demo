@@ -26,7 +26,9 @@ if cid:
     c[3].metric("Country", p["country"])
     st.caption(f"First basket {p['first_basket'][:10]}, last basket {p['last_basket'][:10]}.")
     if not p["seen_in_training"]:
-        st.info("This customer has no basket in the training period, so the model treats them as a cold start.")
+        st.info(
+            "This customer has no basket in the training period, so the model treats them as a cold start."
+        )
     if not history:
         st.warning("This customer has no baskets on record.")
         st.stop()

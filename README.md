@@ -125,6 +125,20 @@ banners, every chart has a table view, and the performance page shows the test r
 including where BasketMind loses to the baselines (the personal-frequency baseline included, once
 `scripts\run_repeat_baselines.py` has been run and `export_analytics.py` re-run).
 
+### Precomputed demo (no model, no GPU, no PyTorch)
+
+```powershell
+python scripts\export_demo.py --device cpu    # once, about a minute: runs the real model for every customer
+$env:BASKETMIND_MODE = "demo"; python -m streamlit run dashboard\app.py
+```
+
+This writes `artifacts/demo/` (about 21 MB: the model's top 100 products for every customer under both policies, with scores,
+quantities and ranks, plus the public baskets and the product graph). In demo mode the dashboard calls the same API code
+inside its own process, so a free host can run it with 250 MB of memory and without PyTorch. A test compares the precomputed
+service with the live model route by route, and on the real model 360 recommendation lists and 960 explanations from 60
+random customers were identical. The API-address box is hidden and a banner says the results are precomputed. A deployment
+can also ship an empty `artifacts/demo/PUBLIC_DEMO` file instead of setting the variable.
+
 ## Running both with Docker
 
 ```powershell

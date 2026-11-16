@@ -33,6 +33,66 @@ def run(page: str) -> AppTest:
     return AppTest.from_file(str(ROOT / "dashboard" / "pages" / f"{page}.py"), default_timeout=60).run()
 
 
+@pytest.fixture
+def demo(service_parts, tmp_path, monkeypatch):
+    """Demo mode on a bundle built from the synthetic service: the dashboard calls the API in-process."""
+    import streamlit as st
+
+    from basketmind.inference.demo_export import write_bundle
+
+    live, _, _ = service_parts
+    live.analytics = {}
+    write_bundle(live, tmp_path, k=2)
+    monkeypatch.setattr(api_client, "DEMO_DIR", tmp_path)
+    monkeypatch.setenv("BASKETMIND_MODE", "demo")
+    st.cache_resource.clear()
+    yield tmp_path
+    st.cache_resource.clear()
+
+
+@pytest.mark.parametrize("page", ["overview", "customers", "predictions", "products"])
+def test_demo_mode_pages_run_on_precomputed_results_without_a_server(demo, page):
+    at = run(page)
+    assert not at.exception and not at.error and at.title
+
+
+def test_demo_mode_says_what_it_is_and_locks_the_api_address(demo):
+    at = AppTest.from_file(str(ROOT / "dashboard" / "app.py"), default_timeout=60).run()
+    assert not at.exception
+    assert any("Precomputed demo" in i.value for i in at.info)
+    assert not at.sidebar.text_input  # a visitor cannot point the server at another address
+    assert any("CC BY 4.0" in m.value for m in at.sidebar.markdown)
+
+
+def test_the_live_dashboard_keeps_the_api_address_box(monkeypatch, tmp_path):
+    monkeypatch.delenv("BASKETMIND_MODE", raising=False)
+    monkeypatch.setattr(api_client, "DEMO_DIR", tmp_path)  # no PUBLIC_DEMO marker here
+    at = AppTest.from_file(str(ROOT / "dashboard" / "app.py"), default_timeout=60).run()
+    assert [t.label for t in at.sidebar.text_input] == ["API address"]
+    assert not any("Precomputed demo" in i.value for i in at.info)
+
+
+def test_demo_mode_without_its_data_fails_politely_and_shows_no_path(tmp_path, monkeypatch):
+    import streamlit as st
+
+    monkeypatch.setattr(api_client, "DEMO_DIR", tmp_path / "missing")
+    monkeypatch.setenv("BASKETMIND_MODE", "demo")
+    st.cache_resource.clear()
+    at = run("overview")
+    assert not at.exception
+    messages = " ".join(e.value for e in at.error)
+    assert "demo data is missing" in messages or "not reachable" in messages
+    assert str(tmp_path) not in messages
+
+
+def test_a_public_demo_marker_file_switches_demo_mode_on(tmp_path, monkeypatch):
+    monkeypatch.delenv("BASKETMIND_MODE", raising=False)
+    monkeypatch.setattr(api_client, "DEMO_DIR", tmp_path)
+    assert not api_client.demo_mode()
+    (tmp_path / "PUBLIC_DEMO").write_text("")
+    assert api_client.demo_mode()
+
+
 @pytest.mark.parametrize("page", ["overview", "customers", "predictions", "products"])
 def test_pages_with_data_render_without_errors(served, page):
     at = run(page)

@@ -5,12 +5,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-from basketmind.inference import BasketMindService, NotFound
+from basketmind.inference import DataService, NotFound
 from basketmind_api import schemas as s
 from basketmind_api.services.dependencies import get_service
 
 router = APIRouter()
-Service = Annotated[BasketMindService, Depends(get_service)]
+Service = Annotated[DataService, Depends(get_service)]
 Identifier = Annotated[str, Query(min_length=1, max_length=20)]
 
 

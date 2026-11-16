@@ -33,9 +33,13 @@ if not related:
     st.warning("No related products found.")
     st.stop()
 st.subheader("Often bought together")
-st.caption("Association is PPMI: how much more often two products share a basket than chance predicts. From history.")
+st.caption(
+    "Association is PPMI: how much more often two products share a basket than chance predicts. From history."
+)
 frame = pd.DataFrame(related)
-fig = px.bar(frame.iloc[::-1], x="association", y="description", orientation="h", color_discrete_sequence=[BLUE])
+fig = px.bar(
+    frame.iloc[::-1], x="association", y="description", orientation="h", color_discrete_sequence=[BLUE]
+)
 st.plotly_chart(style_fig(fig, height=380), width="stretch")
 with st.expander("Table view"):
     st.dataframe(frame, hide_index=True, width="stretch")

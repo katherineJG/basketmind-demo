@@ -60,6 +60,13 @@ instead of re-running the graph encoder over every edge for each request. Output
 on the real model: same top-10 lists, score difference 0), a recommendation drops from about 2.6 s to 4 ms on CPU, and
 concurrent requests no longer multiply memory use. A graph passed in explicitly (another point in time) is still encoded on demand. `scripts/export_analytics.py` writes the cancellation and performance summaries the API serves.
 
+The service is split in two so that a small host can serve the API. `inference/data_service.py` (`DataService`) answers everything
+that needs no model (customers, history, products, related products, overview, evidence for a recommendation) and imports no
+torch. `BasketMindService` adds the model. `PrecomputedService` extends `DataService` and reads the model's answers from a bundle
+(`artifacts/demo/`, written by `scripts/export_demo.py`): the top 100 products per customer under both policies with scores,
+quantities and catalogue-wide ranks. It can only explain products in those lists. It is tested against the live service
+route by route, and in a process where importing torch raises an error.
+
 The Streamlit dashboard (`dashboard/`) sits on top of the API and imports nothing from `basketmind`: all data arrives over HTTP
 through `dashboard/utils/api_client.py`, which turns every failure into a message rather than a stack trace. Pages are separated into
 historical descriptions (customers, products, cancellations, overview) and model output (predictions, performance), each with its

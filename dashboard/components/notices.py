@@ -7,7 +7,9 @@ from dashboard.utils.api_client import ApiError
 
 
 def historical_banner() -> None:
-    st.info("**Historical data.** This page describes what customers actually did. It contains no model predictions.")
+    st.info(
+        "**Historical data.** This page describes what customers actually did. It contains no model predictions."
+    )
 
 
 def prediction_banner() -> None:

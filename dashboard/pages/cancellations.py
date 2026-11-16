@@ -30,7 +30,9 @@ with st.expander("Table view"):
 
 st.subheader("Most-cancelled products")
 top = pd.DataFrame(a["top_cancelled"])
-fig = px.bar(top.iloc[::-1], x="cancellation_lines", y="description", orientation="h", color_discrete_sequence=[BLUE])
+fig = px.bar(
+    top.iloc[::-1], x="cancellation_lines", y="description", orientation="h", color_discrete_sequence=[BLUE]
+)
 st.plotly_chart(style_fig(fig, height=380), width="stretch")
 with st.expander("Table view"):
     st.dataframe(top, hide_index=True, width="stretch")

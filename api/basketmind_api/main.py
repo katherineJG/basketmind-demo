@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from basketmind.inference import BasketMindService
+from basketmind.inference import DataService
 from basketmind.utils.config import project_root
 from basketmind.utils.logging import get_logger
 from basketmind_api.routes import router
@@ -18,7 +18,7 @@ log = get_logger("api")
 
 
 def create_app(
-    service: BasketMindService | None = None, factory: Callable[[], BasketMindService] | None = None
+    service: DataService | None = None, factory: Callable[[], DataService] | None = None
 ) -> FastAPI:
     """Pass a ready `service` (tests) or a `factory` that builds one at startup."""
 
@@ -44,4 +44,10 @@ def create_app(
     return app
 
 
-app = create_app(factory=lambda: BasketMindService.from_artifacts(project_root()))
+def _load_live_model() -> DataService:
+    from basketmind.inference import BasketMindService  # imported here: it needs torch, the demo does not
+
+    return BasketMindService.from_artifacts(project_root())
+
+
+app = create_app(factory=_load_live_model)

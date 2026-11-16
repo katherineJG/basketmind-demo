@@ -42,6 +42,11 @@ served model; see [repeat purchases](repeat_purchases.md).
 
 ## Things worth knowing
 
+- **Demo mode.** The same routes can be served from precomputed results (`PrecomputedService`, built by
+  `scripts/export_demo.py`), with no model and no torch. `/health` then reports `"device": "precomputed"`. Recommendations
+  are the model's own top 100 per customer under each policy, so `k` above 100 is capped as before; `/explain` only answers for
+  products in those lists and returns 404 otherwise. Everything else is identical to the live API.
+
 - **Scores are not probabilities.** Each recommendation carries a raw model logit that ranks products for that customer. The
   weighted training loss makes them uncalibrated, so the API never presents them as chances.
 - **`exclude_history=true`** removes products the customer has already bought, which tests discovery. Products with no remaining

@@ -35,7 +35,9 @@ for status, colour in (("New to this customer", BLUE), ("Bought before", GRAY)):
     fig.add_bar(x=part["score"], y=part["description"], orientation="h", name=status, marker_color=colour)
 fig.update_yaxes(autorange="reversed")
 st.plotly_chart(style_fig(fig, height=max(300, 28 * len(frame) + 80), legend=True), width="stretch")
-st.caption("Scores are raw model outputs used for ranking, not probabilities. Quantities are indicative only.")
+st.caption(
+    "Scores are raw model outputs used for ranking, not probabilities. Quantities are indicative only."
+)
 with st.expander("Table view", expanded=True):
     cols = ["rank", "product_id", "description", "score", "status", "times_bought", "predicted_quantity"]
     st.dataframe(frame[cols], hide_index=True, width="stretch")
@@ -53,7 +55,9 @@ history = (
     if e["bought_before"]
     else "This customer has not bought it before."
 )
-st.write(f"Ranked **#{e['model_rank']}** by the model and **#{e['popularity_rank']}** by overall popularity. {history}")
+st.write(
+    f"Ranked **#{e['model_rank']}** by the model and **#{e['popularity_rank']}** by overall popularity. {history}"
+)
 if e["linked_to_history"]:
     st.write("Products in this customer's history that are often bought together with it:")
     st.dataframe(pd.DataFrame(e["linked_to_history"]), hide_index=True, width="stretch")
